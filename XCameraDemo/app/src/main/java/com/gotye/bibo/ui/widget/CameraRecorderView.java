@@ -35,7 +35,6 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Toast;
 
-import com.faceunity.wrapper.faceunity;
 import com.gotye.bibo.camera.CameraController;
 import com.gotye.bibo.camera.CameraHelper;
 import com.gotye.bibo.camera.CommonHandlerListener;
@@ -68,11 +67,9 @@ import com.livebroadcast.ArcSpotlightResult;
 import com.livebroadcast.ArcSpotlightVersion;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
@@ -101,22 +98,22 @@ public class CameraRecorderView extends SurfaceView
 
     private static final String TAG = "CameraRecorderView";
 
-    public static final int RECORD_ERROR_INIT_MUXER         = -200;
-    public static final int RECORD_ERROR_INIT_AUDIO_REC     = -201;
-    public static final int RECORD_ERROR_INIT_AUDIO_ENC     = -202;
-    public static final int RECORD_ERROR_INIT_VIDEO_ENC     = -203;
-    public static final int RECORD_ERROR_WRITE_VIDEO_FRAME  = -301;
-    public static final int RECORD_ERROR_WRITE_AUDIO_FRAME  = -302;
-    public static final int RECORD_ERROR_SET_VIDEO_PARAM    = -401;
+    public static final int RECORD_ERROR_INIT_MUXER = -200;
+    public static final int RECORD_ERROR_INIT_AUDIO_REC = -201;
+    public static final int RECORD_ERROR_INIT_AUDIO_ENC = -202;
+    public static final int RECORD_ERROR_INIT_VIDEO_ENC = -203;
+    public static final int RECORD_ERROR_WRITE_VIDEO_FRAME = -301;
+    public static final int RECORD_ERROR_WRITE_AUDIO_FRAME = -302;
+    public static final int RECORD_ERROR_SET_VIDEO_PARAM = -401;
 
-    public static final int CAMERA_ERROR_FAIL_TO_OPEN       = -501;
+    public static final int CAMERA_ERROR_FAIL_TO_OPEN = -501;
 
     // display mode
     public static final int SCREEN_FIT = 0; // 自适应
     public static final int SCREEN_STRETCH = 1; // 铺满屏幕
     public static final int SCREEN_FILL = 2; // 放大裁切
     public static final int SCREEN_CENTER = 3; // 原始大小
-    public static final String[] DISPLAY_MODE_DESC = new String[] {
+    public static final String[] DISPLAY_MODE_DESC = new String[]{
             "自适应", "铺满屏幕", "放大裁切", "原始大小"
     };
 
@@ -129,19 +126,19 @@ public class CameraRecorderView extends SurfaceView
 
     private final Context mContext;
 
-    private final static int CAMERA_DEFAULT_WIDTH       = 640;// 默认宽度 768;//640;
-    private final static int CAMERA_DEFAULT_HEIGHT      = 480;//默认高度 432;//480;
-    private final static int CAMERA_DEFAULT_FRAMERATE   = 15; // 默认15的帧率
+    private final static int CAMERA_DEFAULT_WIDTH = 640;// 默认宽度 768;//640;
+    private final static int CAMERA_DEFAULT_HEIGHT = 480;//默认高度 432;//480;
+    private final static int CAMERA_DEFAULT_FRAMERATE = 15; // 默认15的帧率
 
-    private final static int AUDIO_WEBRTC_SAMPLE_RATE	= 48000; // for webrtc
-    private final static int AUDIO_SAMPLE_RATE			= 44100;
-    private final static int AUDIO_CHANNELS				= 1;
-    private final static int AUDIO_BITRATE				= 64000;
-    private final static int AUDIO_WEBRTC_BUF_SIZE      = AUDIO_WEBRTC_SAMPLE_RATE * 2; // 1 sec
-    private final static int AUDIO_PLAYER_BUF_SIZE      = AUDIO_SAMPLE_RATE * 2 * 5; // 5 sec
+    private final static int AUDIO_WEBRTC_SAMPLE_RATE = 48000; // for webrtc
+    private final static int AUDIO_SAMPLE_RATE = 44100;
+    private final static int AUDIO_CHANNELS = 1;
+    private final static int AUDIO_BITRATE = 64000;
+    private final static int AUDIO_WEBRTC_BUF_SIZE = AUDIO_WEBRTC_SAMPLE_RATE * 2; // 1 sec
+    private final static int AUDIO_PLAYER_BUF_SIZE = AUDIO_SAMPLE_RATE * 2 * 5; // 5 sec
 
-    private final static int RECORD_LATENCY_MSEC        = 500;
-    private final static int MIX_THRESHOLD_MSEC         = 100;
+    private final static int RECORD_LATENCY_MSEC = 500;
+    private final static int MIX_THRESHOLD_MSEC = 100;
 
     private CameraHandler mCameraHandler;
     private HandlerThread mHandlerThread;
@@ -214,12 +211,12 @@ public class CameraRecorderView extends SurfaceView
 
     private FilterManager.FilterType mCurrentFilterType;
     private FilterManager.FilterType mNewFilterType;
-    private float []mCurrentFilterParams;
-    private float []mNewFilterParams;
+    private float[] mCurrentFilterParams;
+    private float[] mNewFilterParams;
 
     private boolean mbUseFFmpegMux = true;
 
-    private static final int CAMERA_BUFFER_LIST_SIZE    = 5;
+    private static final int CAMERA_BUFFER_LIST_SIZE = 5;
 
     // listener
     private EncoderListener mEncoderListener;
@@ -242,7 +239,7 @@ public class CameraRecorderView extends SurfaceView
     private Bitmap mBitmap; // for texture take picture mode
     private TakePictureCallback mTakePictureCallback;
 
-//    private boolean mbPeerConnected = false; // pc connected, video and audio can transfer
+    //    private boolean mbPeerConnected = false; // pc connected, video and audio can transfer
     private byte[] mAudioBuf = null;
     private int mAudioBufRead;
     private int mAudioBufWrite;
@@ -327,15 +324,15 @@ public class CameraRecorderView extends SurfaceView
             "tears.mod",
             "rabbit.mod",
             "cat.mod"};
-    int m_frame_id              = 0;
-    int[] m_items               = new int[1];
-    int m_cur_item_id           = 0;
-    int m_created_item_id       = -1;
+    int m_frame_id = 0;
+    int[] m_items = new int[1];
+    int m_cur_item_id = 0;
+    int m_created_item_id = -1;
 
-    byte[] m_cur_image          = null;
-    int m_cur_texid             = -1;
-    boolean m_use_faceunity     = false;
-    boolean m_faceunity_inited  = false;
+    byte[] m_cur_image = null;
+    int m_cur_texid = -1;
+//    boolean m_use_faceunity     = false;
+//    boolean m_faceunity_inited  = false;
 
     public CameraRecorderView(Context context) {
         super(context);
@@ -384,8 +381,7 @@ public class CameraRecorderView extends SurfaceView
             mOrientationListener = new SimpleOrientationEventListener(mContext);
             mOrientationListener.enable();
             // wait for onOrientationChanged to launch SETUP_CAMERA
-        }
-        else {
+        } else {
             if (mContext.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE)
                 mOrientation = 270;
             else if (mContext.getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT)
@@ -398,8 +394,7 @@ public class CameraRecorderView extends SurfaceView
                         CameraHandler.SETUP_CAMERA,
                         CAMERA_DEFAULT_WIDTH, CAMERA_DEFAULT_HEIGHT));
                 mbSetupWhenStart = false;
-            }
-            else {
+            } else {
                 mbSetupWhenStart = true;
                 LogUtil.info(TAG, "Java: camera will start preview when surface was created");
             }
@@ -443,8 +438,7 @@ public class CameraRecorderView extends SurfaceView
                             mCameraHandler.obtainMessage(
                                     CameraHandler.SETUP_CAMERA,
                                     mLastCamSizeWidth, mLastCamSizeHeight));
-                }
-                else {
+                } else {
                     mbSetupWhenStart = true;
                     LogUtil.info(TAG, "Java: camera will start preview when surface was created");
                 }
@@ -470,14 +464,14 @@ public class CameraRecorderView extends SurfaceView
     private static class MainHandler extends Handler {
         private WeakReference<CameraRecorderView> mWeakView;
 
-        private static final int MSG_INIT_MUXER_DONE            = 1004;
-        private static final int MSG_CHECK_SETUP                = 1005;
-        private static final int MSG_UPDATE_LAYOUT              = 1101;
+        private static final int MSG_INIT_MUXER_DONE = 1004;
+        private static final int MSG_CHECK_SETUP = 1005;
+        private static final int MSG_UPDATE_LAYOUT = 1101;
 
-        private static final int MSG_FAIL_TO_WRITE_VIDEO_FRAME  = 2001;
-        private static final int MSG_FAIL_TO_WRITE_AUDIO_FRAME  = 2002;
-        private static final int MSG_FAIL_TO_INIT_MUXER         = 2003;
-        private static final int MSG_FAIL_TO_SET_VIDEO_PARAM    = 2007;
+        private static final int MSG_FAIL_TO_WRITE_VIDEO_FRAME = 2001;
+        private static final int MSG_FAIL_TO_WRITE_AUDIO_FRAME = 2002;
+        private static final int MSG_FAIL_TO_INIT_MUXER = 2003;
+        private static final int MSG_FAIL_TO_SET_VIDEO_PARAM = 2007;
 
         public MainHandler(CameraRecorderView view) {
             mWeakView = new WeakReference<CameraRecorderView>(view);
@@ -506,8 +500,7 @@ public class CameraRecorderView extends SurfaceView
                 case MSG_INIT_MUXER_DONE:
                     boolean bAddAdtsHeader = false;
                     if (view.mEncCfg.mUrl.endsWith(".ts") ||
-                            view.mEncCfg.mUrl.startsWith("udp://"))
-                    {
+                            view.mEncCfg.mUrl.startsWith("udp://")) {
                         bAddAdtsHeader = true;
                     }
 
@@ -518,8 +511,7 @@ public class CameraRecorderView extends SurfaceView
                                 view.mEncoderListener.onError(view, RECORD_ERROR_INIT_VIDEO_ENC, 0);
                             }
                             break;
-                        }
-                        else if (!view.initVideoEncoder()) {
+                        } else if (!view.initVideoEncoder()) {
                             if (view.mEncoderListener != null) {
                                 view.mEncoderListener.onError(view, RECORD_ERROR_INIT_VIDEO_ENC, 0);
                             }
@@ -619,19 +611,19 @@ public class CameraRecorderView extends SurfaceView
                 long startMsec = System.currentTimeMillis();
                 view.mMuxer.writeSampleData(view.mVideoTrackIndex, byteBuf, bufferInfo);
                 long usedMsec = System.currentTimeMillis() - startMsec;
-                view.mAvgWriteFrameMsec = (int)((view.mAvgWriteFrameMsec * 4 + usedMsec) / 5);
+                view.mAvgWriteFrameMsec = (int) ((view.mAvgWriteFrameMsec * 4 + usedMsec) / 5);
 
                 if (view.mEncFrameCount % 10 == 0) {
                     // camera texture timestamp is not exactly the same as the time clock
                     long duration = (view.mCameraTexture.getTimestamp() - view.mSurfaceTextureStartTime) / 1000;
-                    view.mLatencyMsec =  (int)(duration - bufferInfo.presentationTimeUs) / 1000;
+                    view.mLatencyMsec = (int) (duration - bufferInfo.presentationTimeUs) / 1000;
                     if (view.mEncFrameCount > view.mEncCfg.mFrameRate)
-                        view.mVideoKbps = (int)(view.mTotalVideoBytes * 8 * 1000 / duration);
+                        view.mVideoKbps = (int) (view.mTotalVideoBytes * 8 * 1000 / duration);
                 }
 
-                if (Constants.VERBOSE) LogUtil.info(TAG, "sent " + bufferInfo.size + " bytes to muxer");
-            }
-            else {
+                if (Constants.VERBOSE)
+                    LogUtil.info(TAG, "sent " + bufferInfo.size + " bytes to muxer");
+            } else {
                 byte[] data = new byte[bufferInfo.size];
                 byteBuf.get(data);
                 view.write_h264_data(data, 0, bufferInfo.size);
@@ -695,7 +687,8 @@ public class CameraRecorderView extends SurfaceView
             mListener = listener;
         }
 
-        @Override public void handleMessage(Message msg) {
+        @Override
+        public void handleMessage(Message msg) {
             mListener.handleMessage(msg);
         }
     }
@@ -764,8 +757,7 @@ public class CameraRecorderView extends SurfaceView
         if (swapWxH()) {
             mIncomingWidth = height;
             mIncomingHeight = width;
-        }
-        else {
+        } else {
             mIncomingWidth = width;
             mIncomingHeight = height;
         }
@@ -774,7 +766,7 @@ public class CameraRecorderView extends SurfaceView
             // reset FIRST!
             mMvpScaleX = mMvpScaleY = 1f;
 
-            float ratio = (float)(mSurfaceWidth * mIncomingHeight) / (float)(mSurfaceHeight * mIncomingWidth);
+            float ratio = (float) (mSurfaceWidth * mIncomingHeight) / (float) (mSurfaceHeight * mIncomingWidth);
             /*if (ratio > 1f) {
                 // screen much wider
                 mMvpScaleX = 1f / ratio;
@@ -786,15 +778,14 @@ public class CameraRecorderView extends SurfaceView
 
             switch (mDisplayMode) {
                 case SCREEN_CENTER:
-                    mMvpScaleX = (float)mIncomingWidth / (float)mSurfaceWidth;
-                    mMvpScaleY = (float)mIncomingHeight / (float)mSurfaceHeight;
+                    mMvpScaleX = (float) mIncomingWidth / (float) mSurfaceWidth;
+                    mMvpScaleY = (float) mIncomingHeight / (float) mSurfaceHeight;
                     break;
                 case SCREEN_FIT:
                     if (ratio > 1f) {
                         // screen much wider
                         mMvpScaleX = 1f / ratio;
-                    }
-                    else if (ratio < 1f) {
+                    } else if (ratio < 1f) {
                         // preview much wider
                         mMvpScaleY = ratio;
                     }
@@ -803,8 +794,7 @@ public class CameraRecorderView extends SurfaceView
                     if (ratio > 1f) {
                         // screen much wider
                         mMvpScaleY = ratio;
-                    }
-                    else if (ratio < 1f) {
+                    } else if (ratio < 1f) {
                         // preview much wider
                         mMvpScaleX = 1f / ratio;
                     }
@@ -882,12 +872,12 @@ public class CameraRecorderView extends SurfaceView
             LogUtil.warn(TAG, "watermark bitmap is DISABLED because of text");
         }
 
-        mWatermarkText      = text;
-        mWatermarkTextSize  = textsize;
-        mWatermarkLeft      = left;
-        mWatermarkTop       = top;
-        mWatermarkWidth     = width;
-        mWatermarkHeight    = height;
+        mWatermarkText = text;
+        mWatermarkTextSize = textsize;
+        mWatermarkLeft = left;
+        mWatermarkTop = top;
+        mWatermarkWidth = width;
+        mWatermarkHeight = height;
     }
 
     public void setZoomIn() {
@@ -964,8 +954,7 @@ public class CameraRecorderView extends SurfaceView
                         mFaceRect = faces.faceRects[0];
                         mNosePoint = faces.faceOutlinePoints[98];
                         mFaceOrientation = faces.faceOrientations[0];
-                    }
-                    else {
+                    } else {
                         mFaceRect = null;
                     }
 
@@ -979,17 +968,10 @@ public class CameraRecorderView extends SurfaceView
         return true;
     }
 
-    public boolean startFaceDetection() {
-        return CameraController.getInstance().startFaceDetection();
-    }
 
     public void stopArcSoftFaceDetection() {
         // do nothing
         // cannot close and re-alloc mProcessor
-    }
-
-    public void stopFaceDetection() {
-        CameraController.getInstance().stopFaceDetection();
     }
 
     public boolean isSupportArcSoftFaceDetection() {
@@ -1019,21 +1001,17 @@ public class CameraRecorderView extends SurfaceView
         return CameraController.getInstance().getDisplayOrientation();
     }
 
-    public boolean isFaceDectionRunning() {
-        return CameraController.getInstance().isFaceDectionRunning();
-    }
-
     /**
-     * @brief		获取当前显示缩放模式
-     * @return     当前显示模式
+     * @return 当前显示模式
+     * @brief 获取当前显示缩放模式
      */
     public int getDisplayMode() {
         return mDisplayMode;
     }
 
     /**
-     * @brief		设置显示缩放模式
-     * @param[in]	mode 显示模式
+     * @brief 设置显示缩放模式
+     * @param[in] mode 显示模式
      * @ int SCREEN_FIT = 0; // 自适应
      * @ int SCREEN_STRETCH = 1; // 铺满屏幕
      * @ int SCREEN_FILL = 2; // 放大裁切
@@ -1180,8 +1158,7 @@ public class CameraRecorderView extends SurfaceView
 
             mPlayerTimeOffset = -1;
             mbPlayingSong = true;
-        }
-        finally {
+        } finally {
             mAudioLock.unlock();
         }
 
@@ -1199,8 +1176,7 @@ public class CameraRecorderView extends SurfaceView
 
                 mbPlayingSong = false;
             }
-        }
-        finally {
+        } finally {
             mAudioLock.unlock();
         }
     }
@@ -1249,7 +1225,7 @@ public class CameraRecorderView extends SurfaceView
         sb.append(filterType == FilterType.Normal ? "normal" : "bilateral blur");
         if (mNewFilterParams != null && mNewFilterParams.length > 0) {
             sb.append("params: ");
-            for (int i=0;i<filterParams.length;i++) {
+            for (int i = 0; i < filterParams.length; i++) {
                 if (i > 0)
                     sb.append(", ");
                 sb.append(filterParams[i]);
@@ -1288,8 +1264,7 @@ public class CameraRecorderView extends SurfaceView
             else if (mCurrentFilterType == FilterType.AllinOne) {
                 new_type = FilterType.BeautyFaceWu;
                 changeFilter(new_type, mCurrentFilterParams);
-            }
-            else if (mCurrentFilterType == FilterType.BeautyFaceWu) {
+            } else if (mCurrentFilterType == FilterType.BeautyFaceWu) {
                 new_type = FilterType.Cartoon;
                 changeFilter(new_type, mCurrentFilterParams);
             }
@@ -1312,8 +1287,7 @@ public class CameraRecorderView extends SurfaceView
 
             if (mCurrentFilterType == FilterType.BeautyFaceWu) {
                 changeFilter(FilterType.Normal, mCurrentFilterParams);
-            }
-            else {
+            } else {
                 if (mCurrentFilterParams == null) {
                     mCurrentFilterParams = new float[2];
                     mCurrentFilterParams[0] = 1f;
@@ -1325,8 +1299,8 @@ public class CameraRecorderView extends SurfaceView
     }
 
     public boolean isFilterEnabled() {
-        if (!mbTextureEncode){
-            Toast.makeText(getContext(),"滤镜不可用",Toast.LENGTH_LONG).show();
+        if (!mbTextureEncode) {
+            Toast.makeText(getContext(), "滤镜不可用", Toast.LENGTH_LONG).show();
             return false;
         }
 
@@ -1343,62 +1317,53 @@ public class CameraRecorderView extends SurfaceView
         else if (input > 1.0f)
             input = 1.0f;
         mBeautifyValue = input;
-        float []params = null;
-        if (FilterType.BeautyFaceWu== mNewFilterType) {
+        float[] params = null;
+        if (FilterType.BeautyFaceWu == mNewFilterType) {
             params = new float[2];
-            int level = 1 + (int)(input * 5f);
+            int level = 1 + (int) (input * 5f);
             if (level > 5)
                 level = 5;
             params[0] = 1f;
             params[1] = level;
-        }
-        else if (FilterType.BilateralBlur == mNewFilterType ||
+        } else if (FilterType.BilateralBlur == mNewFilterType ||
                 FilterType.AllinOne == mNewFilterType) {
             params = new float[2];
             params[0] = 6f; // distanceNormalizationFactor hardcode
             params[1] = input * 10f; // blurRatio 0.1-10, default 3
-        }
-        else if (FilterType.Toon == mNewFilterType) {
+        } else if (FilterType.Toon == mNewFilterType) {
             params = new float[2];
             params[0] = input * 3f;
             params[1] = input * 10f;
-        }
-        else if (FilterType.SmoothToon == mNewFilterType) {
+        } else if (FilterType.SmoothToon == mNewFilterType) {
             params = new float[3];
             params[0] = input * 3f;
             params[1] = input * 10f;
             params[2] = 0.5f;
-        }
-        else if (FilterType.White == mNewFilterType) {
+        } else if (FilterType.White == mNewFilterType) {
             params = new float[2];
             params[0] = input;
             params[1] = 0.5f;
-        }
-        else if (FilterType.FaceColor == mNewFilterType) {
+        } else if (FilterType.FaceColor == mNewFilterType) {
 
-        }
-        else if (FilterType.BulgeDistortion == mNewFilterType ||
+        } else if (FilterType.BulgeDistortion == mNewFilterType ||
                 FilterType.PinchDistortion == mNewFilterType) {
             params = new float[4];
             params[0] = 0.5f; // radius
             params[1] = input; // scale
             params[2] = 0.5f; // center.x
             params[3] = 0.5f; // center.y
-        }
-        else if (FilterType.ChromaKey == mNewFilterType ||
+        } else if (FilterType.ChromaKey == mNewFilterType ||
                 FilterType.ChromaKeyBlend == mNewFilterType) {
             params = new float[2];
             params[0] = 0.4f + input / 5f; // thresholdSensitivity
             params[1] = 0.1f; // smoothing
-        }
-        else if (FilterType.FaceUnity == mNewFilterType) {
-            m_cur_item_id = (int)(input * 8f);
+        } else if (FilterType.FaceUnity == mNewFilterType) {
+            m_cur_item_id = (int) (input * 8f);
             if (m_cur_item_id > m_item_names.length - 1)
                 m_cur_item_id = m_item_names.length - 1;
             LogUtil.info(TAG, "m_cur_item_id set to: " + m_cur_item_id);
             return;
-        }
-        else {
+        } else {
             params = new float[1];
             params[0] = val;
         }
@@ -1499,8 +1464,7 @@ public class CameraRecorderView extends SurfaceView
                         mMainHandler.sendEmptyMessage(MainHandler.MSG_FAIL_TO_INIT_MUXER);
                         return;
                     }
-                }
-                else if (!initMuxer()) {
+                } else if (!initMuxer()) {
                     mMainHandler.sendEmptyMessage(MainHandler.MSG_FAIL_TO_INIT_MUXER);
                     return;
                 }
@@ -1592,8 +1556,7 @@ public class CameraRecorderView extends SurfaceView
                 LogUtil.info(TAG, String.format(Locale.US,
                         "picture bitmap info: %d x %d",
                         mBitmap.getWidth(), mBitmap.getHeight()));
-            }
-            else {
+            } else {
                 new SavePictureTask().execute(jpeg);
             }
 
@@ -1698,18 +1661,18 @@ public class CameraRecorderView extends SurfaceView
             return buffer;
         }
 
-        private byte[] addBMP_RGB_888(int[] b,int w, int h) {
+        private byte[] addBMP_RGB_888(int[] b, int w, int h) {
             int len = b.length;
             System.out.println(b.length);
-            byte[] buffer = new byte[w*h * 3];
-            int offset=0;
-            for (int i = len-1; i>=0; i-=w) {
+            byte[] buffer = new byte[w * h * 3];
+            int offset = 0;
+            for (int i = len - 1; i >= 0; i -= w) {
                 //DIB文件格式最后一行为第一行，每行按从左到右顺序
-                int end=i,start=i-w+1;
-                for(int j=start;j<=end;j++){
-                    buffer[offset]=(byte)(b[j]>>0);
-                    buffer[offset+1]=(byte)(b[j]>>8);
-                    buffer[offset+2]=(byte)(b[j]>>16);
+                int end = i, start = i - w + 1;
+                for (int j = start; j <= end; j++) {
+                    buffer[offset] = (byte) (b[j] >> 0);
+                    buffer[offset + 1] = (byte) (b[j] >> 8);
+                    buffer[offset + 2] = (byte) (b[j] >> 16);
                     offset += 3;
                 }
             }
@@ -1721,8 +1684,7 @@ public class CameraRecorderView extends SurfaceView
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         if (mbTextureEncode) {
             super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-        }
-        else {
+        } else {
             int camera_width = mPreviewWidth;
             int camera_height = mPreviewHeight;
             if (swapWxH()) {
@@ -1807,7 +1769,7 @@ public class CameraRecorderView extends SurfaceView
             mDisplaySurface.makeCurrent();
 
             if (mBufferTexID != -1) {
-                int []tex = new int[1];
+                int[] tex = new int[1];
                 tex[0] = mBufferTexID;
                 GLES20.glDeleteTextures(1, tex, 0);
             }
@@ -1872,8 +1834,7 @@ public class CameraRecorderView extends SurfaceView
 
         if (!mbTextureEncode && !mEncCfg.mbRotate && mDisplayOrientation != 0) {
             if (!mMuxer.nativeSetMetaData(mVideoTrackIndex, "rotate",
-                    String.valueOf(mDisplayOrientation)))
-            {
+                    String.valueOf(mDisplayOrientation))) {
                 return false;
             }
         }
@@ -1919,8 +1880,7 @@ public class CameraRecorderView extends SurfaceView
             mode = PPEncoder.EncodeMode.X264;
             if (mEncCfg.mbRotate)
                 option = String.format("rotate=%d", mDisplayOrientation);
-        }
-        else {
+        } else {
             mode = PPEncoder.EncodeMode.SYSTEM;
             option = "bitrate=" + mEncCfg.mBitRate;
         }
@@ -1953,7 +1913,7 @@ public class CameraRecorderView extends SurfaceView
                     mEncCfg.mBitRate, mEncCfg.mFrameRate,
                     mTextureEncHandler);
         } catch (IOException e) {
-            LogUtil.error(TAG,"初始化 TextEncoder 失败");
+            LogUtil.error(TAG, "初始化 TextEncoder 失败");
             e.printStackTrace();
         }
 
@@ -2032,8 +1992,7 @@ public class CameraRecorderView extends SurfaceView
                 mAudioEncoder.close();
                 mAudioEncoder = null;
             }
-        }
-        finally {
+        } finally {
             mAudioLock.unlock();
         }
 
@@ -2055,8 +2014,7 @@ public class CameraRecorderView extends SurfaceView
                 mVideoTextureEncoder.shutdown();
                 mVideoTextureEncoder = null;
             }
-        }
-        finally {
+        } finally {
             mVideoLock.unlock();
         }
 
@@ -2067,12 +2025,12 @@ public class CameraRecorderView extends SurfaceView
     private void popOutputTypeDlg() {
         final List<Camera.Size> ResList = CameraHelper.getSupportedPreviewSize(
                 CameraController.getInstance().getCameraParameters());
-        if (ResList == null || ResList.size() <= 0){
-            Toast.makeText(mContext,"没有可以选择的摄像分辨率",Toast.LENGTH_LONG).show();
+        if (ResList == null || ResList.size() <= 0) {
+            Toast.makeText(mContext, "没有可以选择的摄像分辨率", Toast.LENGTH_LONG).show();
         }
         int index = -1;
         List<String> CamResList = new ArrayList<String>();
-        for (int i=0;i<ResList.size();i++) {
+        for (int i = 0; i < ResList.size(); i++) {
             Camera.Size size = ResList.get(i);
             CamResList.add(String.format("%d x %d", size.width, size.height));
             if (mLastCamSizeWidth == size.width && mLastCamSizeHeight == size.height)
@@ -2083,8 +2041,8 @@ public class CameraRecorderView extends SurfaceView
         Dialog choose_mux_fmt_dlg = new AlertDialog.Builder(mContext)
                 .setTitle("选择摄像头分辨率")
                 .setSingleChoiceItems(strRes, index, /*default selection item number*/
-                        new DialogInterface.OnClickListener(){
-                            public void onClick(DialogInterface dialog, int whichButton){
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int whichButton) {
 
                                 //if (whichButton != mCamResIndex) {
                                 Toast.makeText(mContext, "选择分辨率 " + strRes[whichButton],
@@ -2127,15 +2085,15 @@ public class CameraRecorderView extends SurfaceView
             camera_height = mPreviewWidth;
         }
 
-        float width     = mRectF.width();
-        float height    = mRectF.height();
-        float scaleX    = width / (float)camera_width * mvpScaleX;
-        float scaleY    = height / (float)camera_height * mvpScaleY;
+        float width = mRectF.width();
+        float height = mRectF.height();
+        float scaleX = width / (float) camera_width * mvpScaleX;
+        float scaleY = height / (float) camera_height * mvpScaleY;
         scaleX *= 1.5f;
         scaleY *= 1.5f;
         scaleY /= mStickerRatio;
 
-        float []pos = new float[2];
+        float[] pos = new float[2];
         pos[0] = mNosePoint.x;
         pos[1] = mNosePoint.y;
         mMatrix.mapPoints(pos);
@@ -2145,9 +2103,9 @@ public class CameraRecorderView extends SurfaceView
 
         // width <-> (-1, 1) [range 2]
         float translateX =
-                (revert ? -FaceCenterX : FaceCenterX) / (float)(camera_width / 2) * mvpScaleX;
+                (revert ? -FaceCenterX : FaceCenterX) / (float) (camera_width / 2) * mvpScaleX;
         float translateY =
-                FaceCenterY / (float)(camera_height / 2) * mvpScaleY;
+                FaceCenterY / (float) (camera_height / 2) * mvpScaleY;
 
         /*LogUtil.info(TAG, String.format(Locale.US,
                 "scaleX %.3f, scaleY %.3f, " +
@@ -2192,10 +2150,6 @@ public class CameraRecorderView extends SurfaceView
             mDisplaySurface.makeCurrent();
             if (mNewFilterType != mCurrentFilterType ||
                     mNewFilterParams != mCurrentFilterParams) {
-                if (mNewFilterType == FilterType.FaceUnity)
-                    m_use_faceunity = true;
-                else
-                    m_use_faceunity = false;
 
                 mFullFrameBlit.changeProgram(
                         FilterManager.getCameraFilter(mNewFilterType, mContext, mNewFilterParams));
@@ -2207,26 +2161,7 @@ public class CameraRecorderView extends SurfaceView
             mCameraTexture.updateTexImage();
             mCameraTexture.getTransformMatrix(mTmpMatrix);
 
-            if (m_use_faceunity && !m_faceunity_inited) {
-                try {
-                    File f = new File(mRootPath + "/faceUnity/v2.bin");
-                    InputStream is = new FileInputStream(f);
-                    byte[] v2data = new byte[is.available()];
-                    is.read(v2data);
-                    is.close();
-                    File f2 = new File(mRootPath + "/faceUnity/ar.bin");
-                    is = new FileInputStream(f2);
-                    byte[] ardata=new byte[is.available()];
-                    is.read(ardata);
-                    is.close();
-                    faceunity.fuInit(v2data, ardata);
-                    m_faceunity_inited = true;
-                }catch (IOException e){
-                    LogUtil.error(TAG, "IOException: " + e);
-                }
-            }
-
-            if ((mWatermarkBitmap != null || mWatermarkText != null ) &&
+            if ((mWatermarkBitmap != null || mWatermarkText != null) &&
                     mWatermarkFrame == null) {
                 mWatermarkFrame = new FullFrameRect(
                         FilterManager.getImageFilter(FilterType.Normal, mContext));
@@ -2242,41 +2177,6 @@ public class CameraRecorderView extends SurfaceView
             if (mWatermarkFrame != null) {
                 GLES20.glEnable(GLES20.GL_BLEND);
                 GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
-            }
-
-            if (m_use_faceunity) {
-                if (m_created_item_id != m_cur_item_id && m_items[0] != 0){
-                    faceunity.fuDestroyItem(m_items[0]);
-                    LogUtil.info(TAG, "fuDestroyItem");
-                    m_items[0] = 0;
-                    m_created_item_id = m_cur_item_id;
-                }
-
-                if (m_items[0] == 0) {
-                    LogUtil.info(TAG, "fuLoadItem: " + m_cur_item_id);
-
-                    try {
-                        File f = new File(mRootPath + "/faceUnity/" + m_item_names[m_cur_item_id]);
-                        InputStream is = new FileInputStream(f);
-                        byte[] item_data=new byte[is.available()];
-                        is.read(item_data);
-                        is.close();
-                        m_items[0] = faceunity.fuCreateItemFromPackage(item_data);
-                        LogUtil.info(TAG, "fuLoadItem items[0]: " + m_items[0]);
-                        // parameter-setting Example
-                        faceunity.fuItemSetParam(m_items[0], "nose_scale", 0.5);
-                        faceunity.fuItemSetParam(m_items[0], "face_stretch", 1.3);
-                    } catch(IOException e) {
-                        LogUtil.error(TAG, "IOException: " + e);
-                    }
-                }
-
-                if (m_cur_image != null) {
-                    newTexId = faceunity.fuDualInputToTexture(
-                            m_cur_image, mTextureId,
-                            faceunity.FU_ADM_FLAG_EXTERNAL_OES_TEXTURE,
-                            mPreviewWidth, mPreviewHeight, m_frame_id++, m_items);
-                }
             }
 
             // Fill the SurfaceView with it.
@@ -2309,7 +2209,7 @@ public class CameraRecorderView extends SurfaceView
                             //"/test2/bibo/shy/fres_1471855085210.dat";
                             "/test2/bibo/arcsoft_model/cat_ear/moustache/fres_1471855082855.dat";
                     ResImageFilter filter = new ResImageFilter(mContext, idx_path, dat_path);
-                    mStickerRatio = (float)filter.getResWidth() / (float)filter.getResHeight();
+                    mStickerRatio = (float) filter.getResWidth() / (float) filter.getResHeight();
 
                     /*final BitmapFactory.Options options = new BitmapFactory.Options();
                     options.inScaled = false;    // No pre-scaling
@@ -2330,12 +2230,12 @@ public class CameraRecorderView extends SurfaceView
             }
 
             if (mWatermarkFrame != null) {
-                float scaleX        = (float)mWatermarkWidth / (float)mIncomingWidth * mMvpScaleX;
-                float scaleY        = (float)mWatermarkHeight / (float)mIncomingHeight * mMvpScaleY;
-                float translateX    = -(mMvpScaleX - scaleX) +
-                        (float)mWatermarkLeft * 2f * mMvpScaleX / (float)mIncomingWidth;
-                float translateY    = mMvpScaleY - scaleY -
-                        (float)mWatermarkTop * 2f * mMvpScaleY / (float)mIncomingHeight;
+                float scaleX = (float) mWatermarkWidth / (float) mIncomingWidth * mMvpScaleX;
+                float scaleY = (float) mWatermarkHeight / (float) mIncomingHeight * mMvpScaleY;
+                float translateX = -(mMvpScaleX - scaleX) +
+                        (float) mWatermarkLeft * 2f * mMvpScaleX / (float) mIncomingWidth;
+                float translateY = mMvpScaleY - scaleY -
+                        (float) mWatermarkTop * 2f * mMvpScaleY / (float) mIncomingHeight;
                 /*LogUtil.info(TAG, String.format("scaleX %.3f, scaleY %.3f, " +
                         "translateX %.3f, translateY %.3f || " +
                         "mMvpScaleX %.3f, mMvpScaleY %.3f",
@@ -2348,7 +2248,7 @@ public class CameraRecorderView extends SurfaceView
             drawExtra(mPrevFrameCount, mSurfaceWidth, mSurfaceHeight);
             long startMsec = System.currentTimeMillis();
             mDisplaySurface.swapBuffers();
-            int used = (int)(System.currentTimeMillis() - startMsec);
+            int used = (int) (System.currentTimeMillis() - startMsec);
             if (!mbRecording) {
                 mInstantAvgSwapBuffersMsec = (mInstantAvgSwapBuffersMsec * 4 + used) / 5;
                 if (mPrevFrameCount % 10 == 0)
@@ -2357,8 +2257,8 @@ public class CameraRecorderView extends SurfaceView
 
             mPrevFrameCount++;
             if (mPrevFrameCount % 10 == 0) {
-                mPrevFps = (double)(mPrevFrameCount * 1000) /
-                        (double)(System.currentTimeMillis() - mStartPreviewMsec);
+                mPrevFps = (double) (mPrevFrameCount * 1000) /
+                        (double) (System.currentTimeMillis() - mStartPreviewMsec);
             }
 
             // get texture
@@ -2448,7 +2348,7 @@ public class CameraRecorderView extends SurfaceView
             boolean bEncode = true;
             if (mEncFrameCount > mEncCfg.mFrameRate) {
                 long elapsed = System.currentTimeMillis() - mStartRecordMsec;
-                double fps = (double)(mEncFrameCount * 1000) / (double)elapsed;
+                double fps = (double) (mEncFrameCount * 1000) / (double) elapsed;
                 // ONLY when preview is ON, can drop frame(not call swap() but just return)
                 // NOT call swap() return will cause next onFrameAvailable never come again
                 // when in background mode
@@ -2456,9 +2356,8 @@ public class CameraRecorderView extends SurfaceView
                     if (mDisplaySurface != null) {
                         // ONLY foreground recording can drop, NOT call swap()
                         bEncode = false;
-                    }
-                    else {
-                        int pause_time = (int)(mEncFrameCount * 1000 / mEncCfg.mFrameRate - elapsed);
+                    } else {
+                        int pause_time = (int) (mEncFrameCount * 1000 / mEncCfg.mFrameRate - elapsed);
                         if (pause_time > 5) {
                             try {
                                 Thread.sleep(pause_time);
@@ -2503,12 +2402,12 @@ public class CameraRecorderView extends SurfaceView
 
 
                 if (mWatermarkFrame != null) {
-                    float scaleX        = (float)mWatermarkWidth / (float)mIncomingWidth;
-                    float scaleY        = (float)mWatermarkHeight / (float)mIncomingHeight;
-                    float translateX    = -(1f - scaleX) +
-                            (float)mWatermarkLeft * 2f / (float)mIncomingWidth;
-                    float translateY    = 1f - scaleY -
-                            (float)mWatermarkTop * 2f / (float)mIncomingHeight;
+                    float scaleX = (float) mWatermarkWidth / (float) mIncomingWidth;
+                    float scaleY = (float) mWatermarkHeight / (float) mIncomingHeight;
+                    float translateX = -(1f - scaleX) +
+                            (float) mWatermarkLeft * 2f / (float) mIncomingWidth;
+                    float translateY = 1f - scaleY -
+                            (float) mWatermarkTop * 2f / (float) mIncomingHeight;
                     /*LogUtil.info(TAG, String.format("scaleX %.3f, scaleY %.3f, " +
                         "translateX %.3f, translateY %.3f",
                         scaleX, scaleY, translateX, translateY));*/
@@ -2528,7 +2427,7 @@ public class CameraRecorderView extends SurfaceView
                 mEncoderSurface.setPresentationTime(mCameraTexture.getTimestamp() - mSurfaceTextureStartTime);
                 long encStartMsec = System.currentTimeMillis();
                 mEncoderSurface.swapBuffers(); // long time operation
-                int encUsed = (int)(System.currentTimeMillis() - encStartMsec);
+                int encUsed = (int) (System.currentTimeMillis() - encStartMsec);
                 mInstantAvgSwapBuffersMsec = (mInstantAvgSwapBuffersMsec * 4 + encUsed) / 5;
 
                 mEncFrameCount++;
@@ -2537,7 +2436,7 @@ public class CameraRecorderView extends SurfaceView
             update_stat();
         }
 
-        int encUsed = (int)(System.currentTimeMillis() - start_drawFrame);
+        int encUsed = (int) (System.currentTimeMillis() - start_drawFrame);
         mInstantAvgDrawFrameMsec = (mInstantAvgDrawFrameMsec * 4 + encUsed) / 5;
         if (!mbRecording && mPrevFrameCount % 10 == 0)
             mAvgDrawFrameMsec = mInstantAvgDrawFrameMsec;
@@ -2556,11 +2455,17 @@ public class CameraRecorderView extends SurfaceView
      */
     private static void drawExtra(long frameNum, int width, int height) {
         // We "draw" with the scissor rect and clear calls.  Note this uses window coordinates.
-        int val = (int)frameNum % 3;
+        int val = (int) frameNum % 3;
         switch (val) {
-            case 0:  GLES20.glClearColor(1.0f, 0.0f, 0.0f, 1.0f);   break;
-            case 1:  GLES20.glClearColor(0.0f, 1.0f, 0.0f, 1.0f);   break;
-            case 2:  GLES20.glClearColor(0.0f, 0.0f, 1.0f, 1.0f);   break;
+            case 0:
+                GLES20.glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+                break;
+            case 1:
+                GLES20.glClearColor(0.0f, 1.0f, 0.0f, 1.0f);
+                break;
+            case 2:
+                GLES20.glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
+                break;
         }
 
         int xpos = (int) (width * ((frameNum % 100) / 100.0f));
@@ -2573,6 +2478,7 @@ public class CameraRecorderView extends SurfaceView
     private class Mp4ProcessTask extends AsyncTask<String, Long, Boolean>
             implements Mp4Process.IProcessProgress {
         private ProgressDialog progressDialog;
+
         @Override
         protected void onPreExecute() {
             progressDialog = new ProgressDialog(mContext);
@@ -2596,7 +2502,7 @@ public class CameraRecorderView extends SurfaceView
 
         @Override
         protected void onProgressUpdate(Long... values) {
-            int pct = (int)(values[0] * 100 / values[1]);
+            int pct = (int) (values[0] * 100 / values[1]);
             progressDialog.setProgress(pct);
         }
 
@@ -2613,9 +2519,9 @@ public class CameraRecorderView extends SurfaceView
             long timestamp = mRecordDurationMsec * 1000;
 
             if (mAudioClockUsec > 0)
-                mAVDiffMsec = (int)((timestamp - mAudioClockUsec) / 1000);
+                mAVDiffMsec = (int) ((timestamp - mAudioClockUsec) / 1000);
 
-            mEncFps = (double)(mEncFrameCount * 1000) / (double)mRecordDurationMsec;
+            mEncFps = (double) (mEncFrameCount * 1000) / (double) mRecordDurationMsec;
             mAvgSwapBuffersMsec = mInstantAvgSwapBuffersMsec;
             mAvgDrawFrameMsec = mInstantAvgDrawFrameMsec;
         }
@@ -2636,15 +2542,7 @@ public class CameraRecorderView extends SurfaceView
 
             if (mbTextureEncode) {
 
-
-                if (m_use_faceunity && m_items[0] != 0) {
-                    m_cur_image = data;
-
-                    //m_cur_texid = faceunity.fuRenderToNV21Image(data,
-                    //        mPreviewWidth, mPreviewHeight, m_frame_id++, m_items);
-                }
-            }
-            else {
+            } else {
                 long duration = System.currentTimeMillis() - mStartPreviewMsec;
                 double currFPS = mPrevFrameCount * 1000 / (double) duration;
 
@@ -2656,21 +2554,20 @@ public class CameraRecorderView extends SurfaceView
 
                 mPrevFrameCount++;
                 if (mPrevFrameCount % 10 == 0)
-                    mPrevFps = (double)(mPrevFrameCount * 1000) / (double)(System.currentTimeMillis() - mStartPreviewMsec);
+                    mPrevFps = (double) (mPrevFrameCount * 1000) / (double) (System.currentTimeMillis() - mStartPreviewMsec);
 
                 if (mbRecording && !mbStopping) {
                     try {
                         long timestamp = (System.currentTimeMillis() - mStartRecordMsec) * 1000;
                         mVideoLock.lock();
-                        if (mVideoEncoder != null){
+                        if (mVideoEncoder != null) {
                             if (!mVideoEncoder.addFrame(data, timestamp)) {
                                 LogUtil.error(TAG, "Java: failed to addFrame");
                                 mMainHandler.sendMessage(
                                         mMainHandler.obtainMessage(MainHandler.MSG_FAIL_TO_WRITE_VIDEO_FRAME));
                             }
                         }
-                    }
-                    finally {
+                    } finally {
                         mVideoLock.unlock();
                     }
 
@@ -2693,24 +2590,25 @@ public class CameraRecorderView extends SurfaceView
                 //key frame   编码器生成关键帧时只有 00 00 00 01 65 没有pps sps， 要加上
                 if ((data[start + 4] & 0x1f) == AVCNaluType.IDR && mVideoSPSandPPS != null) {
                     // arraycopy(Object src, int srcPos, Object dest, int destPos, int length)
-                    System.arraycopy(mVideoSPSandPPS, 0,  mH264, 0, mVideoSPSandPPS.length); // copy sps and pps with start code
+                    System.arraycopy(mVideoSPSandPPS, 0, mH264, 0, mVideoSPSandPPS.length); // copy sps and pps with start code
 
                     pos += mVideoSPSandPPS.length;
                     LogUtil.info(TAG, "Java: AVCNaluType.IDR add sps_pps");
                 }
             }
 
-            System.arraycopy(data, start,  mH264, pos, byteCount); // copy pic nalu
+            System.arraycopy(data, start, mH264, pos, byteCount); // copy pic nalu
             pos += byteCount;
 
             // write size
             if (mbWriteSize) {
-                byte []byte_size = Util.IntToByte(pos);
+                byte[] byte_size = Util.IntToByte(pos);
                 outSteamH264.write(byte_size);
             }
 
             outSteamH264.write(mH264, 0, pos);
-            if (Constants.VERBOSE) LogUtil.debug(TAG, String.format("Java: write h264 data len: %d, offset %d", pos, mFileOffset));
+            if (Constants.VERBOSE)
+                LogUtil.debug(TAG, String.format("Java: write h264 data len: %d, offset %d", pos, mFileOffset));
             mFileOffset += pos;
         } catch (IOException e) {
             // TODO Auto-generated catch block
@@ -2718,12 +2616,14 @@ public class CameraRecorderView extends SurfaceView
         }
     }
 
-    @Override public void onFrameAvailable(SurfaceTexture surfaceTexture) {
+    @Override
+    public void onFrameAvailable(SurfaceTexture surfaceTexture) {
         if (Constants.VERBOSE) LogUtil.debug(TAG, "frame available");
         mTextureEncHandler.sendEmptyMessage(TextureEncoderHandler.MSG_FRAME_AVAILABLE);
     }
 
-    @Override public void handleMessage(final Message msg) {
+    @Override
+    public void handleMessage(final Message msg) {
         switch (msg.what) {
             case CameraHandler.SELECT_CAMERA_RESOLUTION:
                 popOutputTypeDlg();
@@ -2761,15 +2661,13 @@ public class CameraRecorderView extends SurfaceView
 
                         mCameraHandler.sendMessage(mCameraHandler.obtainMessage(
                                 CameraHandler.CONFIGURE_CAMERA, width, height));
-                    }
-                    else {
+                    } else {
                         LogUtil.error(TAG, "failed to setupCamera");
                         if (mCameraListener != null) {
                             mCameraListener.onCameraOpenFailed(this, mbUseFrontCam, CAMERA_ERROR_FAIL_TO_OPEN);
                         }
                     }
-                }
-                else {
+                } else {
                     LogUtil.info(TAG, "mOrientation is ORIENTATION_UNKNOWN, waiting");
                 }
             }
@@ -2818,8 +2716,7 @@ public class CameraRecorderView extends SurfaceView
                     }
 
                     mCameraHandler.sendEmptyMessage(CameraHandler.START_CAMERA_PREVIEW);
-                }
-                else {
+                } else {
                     LogUtil.error(TAG, "failed to get previewSize");
                 }
             }
@@ -2831,8 +2728,7 @@ public class CameraRecorderView extends SurfaceView
                         mOnPreviewCallback, CAMERA_BUFFER_LIST_SIZE);
                 if (mbTextureEncode) {
                     CameraController.getInstance().startCameraPreview(mCameraTexture);
-                }
-                else {
+                } else {
                     CameraController.getInstance().startCameraPreview(
                             getHolder());
                 }
@@ -2848,8 +2744,7 @@ public class CameraRecorderView extends SurfaceView
                     if (mbUseFrontCam) {
                         //rotate = (mOrientation + 360 - camera_orientation) % 360;
                         rotate = (360 - mOrientation + camera_orientation) % 360;
-                    }
-                    else {
+                    } else {
                         rotate = (mOrientation + camera_orientation) % 360;
                     }
                     String option = String.format("rotate=%d", rotate);
@@ -2858,19 +2753,6 @@ public class CameraRecorderView extends SurfaceView
 
                 resetPreviewData();
                 mStartPreviewMsec = System.currentTimeMillis();
-
-                if (CameraController.getInstance().isFaceDectionRunning() &&
-                        mFaceDetectionListener != null) {
-                    LogUtil.info(TAG, "restart face detection");
-
-                    setFaceDetectionListener(mFaceDetectionListener);
-                    startFaceDetection();
-                }
-
-                if (m_use_faceunity) {
-                    faceunity.fuOnDeviceLost();
-                    faceunity.fuOnCameraChange();
-                }
 
                 if (mCameraListener != null) {
                     mCameraListener.onCameraOpen(this, mbUseFrontCam, mbCameraFirstOpen);
@@ -2893,16 +2775,17 @@ public class CameraRecorderView extends SurfaceView
     @Override
     public void onData(PPEncoder enc, byte[] data, int start, int byteCount, long timestamp/*usec*/) {
         // TODO Auto-generated method stub
-        if (Constants.VERBOSE) LogUtil.debug(TAG, String.format("Java: Encoder.onData() start %d, byteCount %d, timestamp %d",
-                start, byteCount, timestamp));
+        if (Constants.VERBOSE)
+            LogUtil.debug(TAG, String.format("Java: Encoder.onData() start %d, byteCount %d, timestamp %d",
+                    start, byteCount, timestamp));
 
         mTotalVideoBytes += byteCount;
 
         if (mEncFrameCount % 10 == 0) {
             long duration = System.currentTimeMillis() - mStartRecordMsec;
-            mLatencyMsec =  (int)(duration - timestamp / 1000);
+            mLatencyMsec = (int) (duration - timestamp / 1000);
             if (mEncFrameCount > mEncCfg.mFrameRate)
-                mVideoKbps = (int)(mTotalVideoBytes * 8 / duration);
+                mVideoKbps = (int) (mTotalVideoBytes * 8 / duration);
         }
 
         if (mbUseFFmpegMux && mMuxer != null) {
@@ -2910,9 +2793,8 @@ public class CameraRecorderView extends SurfaceView
             if (!mMuxer.nativeWriteFrame(true, data, start, byteCount, timestamp))
                 mMainHandler.sendEmptyMessage(MainHandler.MSG_FAIL_TO_WRITE_VIDEO_FRAME);
             long usedMsec = System.currentTimeMillis() - startMsec;
-            mAvgWriteFrameMsec = (int)((mAvgWriteFrameMsec * 4 + usedMsec) / 5);
-        }
-        else {
+            mAvgWriteFrameMsec = (int) ((mAvgWriteFrameMsec * 4 + usedMsec) / 5);
+        } else {
             write_h264_data(data, start, byteCount);
         }
     }
@@ -2936,8 +2818,9 @@ public class CameraRecorderView extends SurfaceView
 
     @Override
     public void OnAudioData(byte[] data, int start, int byteCount, long timestamp/*usec*/) {
-        if (Constants.VERBOSE) LogUtil.debug(TAG, String.format("Java: Encoder.OnAudioData() start %d, byteCount %d, timestamp %d",
-                start, byteCount, timestamp));
+        if (Constants.VERBOSE)
+            LogUtil.debug(TAG, String.format("Java: Encoder.OnAudioData() start %d, byteCount %d, timestamp %d",
+                    start, byteCount, timestamp));
 
         if (mMuxer != null) {
             // audio frame must write after sps_and_pps is set
@@ -3012,8 +2895,7 @@ public class CameraRecorderView extends SurfaceView
             System.arraycopy(buf, 0, mAudioTrackBuf, mAudioTrackBufWrite, size);
             mAudioTrackBufWrite += size;
             mPlayerBufTimestamp = timestamp;
-        }
-        finally {
+        } finally {
             mAudioLock.unlock();
         }
     }
@@ -3031,8 +2913,7 @@ public class CameraRecorderView extends SurfaceView
             mPlayerTimeOffset = -1;
             mPlayerBufTimestamp = 0;
             mAudioTrackBufRead = mAudioTrackBufWrite = 0;
-        }
-        finally {
+        } finally {
             mAudioLock.unlock();
         }
     }
@@ -3041,9 +2922,10 @@ public class CameraRecorderView extends SurfaceView
     // audio recorder interface
 
     /**
-     *  获取的原声 音频数据
-     * @param data 音频data
-     * @param start 该段数据对应的 时间
+     * 获取的原声 音频数据
+     *
+     * @param data      音频data
+     * @param start     该段数据对应的 时间
      * @param byteCount 数据大小
      * @param timestamp
      */
@@ -3055,11 +2937,11 @@ public class CameraRecorderView extends SurfaceView
         mAudioLock.lock();
         try {
             // mix audio
-            if ( mbPlayingSong && mAudioTrackBuf != null) {
+            if (mbPlayingSong && mAudioTrackBuf != null) {
                 if (mPlayerTimeOffset == -1) {
                     // > 0: audioplayer start earlier than recorder
                     // < 0: audioplayer start later than recorder
-                    mPlayerTimeOffset = mAudioPlayer.getCurrentPosition() - (int)timestamp / 1000;
+                    mPlayerTimeOffset = mAudioPlayer.getCurrentPosition() - (int) timestamp / 1000;
                     LogUtil.info(TAG, "audioplayer: mPlayerTimeOffset: " + mPlayerTimeOffset);
                 }
 
@@ -3092,7 +2974,7 @@ public class CameraRecorderView extends SurfaceView
                     int player_msec = mPlayerBufTimestamp - mPlayerTimeOffset;
                     if (player_msec < 0)
                         player_msec = 0;
-                    int recorder_msec = (int)(timestamp / 1000) - RECORD_LATENCY_MSEC;
+                    int recorder_msec = (int) (timestamp / 1000) - RECORD_LATENCY_MSEC;
                     int one_sec_size = AUDIO_SAMPLE_RATE * AUDIO_CHANNELS * 2/*s16*/;
                     int cache_msec = left * 1000 / one_sec_size;
                     int head_msec = player_msec - cache_msec;
@@ -3118,8 +3000,7 @@ public class CameraRecorderView extends SurfaceView
                     }
                     if (head_msec - recorder_msec <= MIX_THRESHOLD_MSEC && left >= byteCount) {
                         need_mix = true;
-                    }
-                    else {
+                    } else {
                         LogUtil.warn(TAG, "audioplayer: fill mute, no mix");
                     }
                 }
@@ -3128,7 +3009,7 @@ public class CameraRecorderView extends SurfaceView
                     System.arraycopy(mAudioTrackBuf, mAudioTrackBufRead, audiotrack_data, 0, byteCount);
                     mAudioTrackBufRead += byteCount;
 
-                    for (int i = 0; i < byteCount; i++){
+                    for (int i = 0; i < byteCount; i++) {
 
                         float samplef1 = data[start + i] * 1.4f /*voice input gain*/ / 128.0f;      //     2^7=128
                         float samplef2 = audiotrack_data[i] * mMixVolume / 128.0f;
@@ -3139,11 +3020,10 @@ public class CameraRecorderView extends SurfaceView
                         // hard clipping
                         if (mixed > 1.0f) mixed = 1.0f;
                         if (mixed < -1.0f) mixed = -1.0f;
-                        byte outputSample = (byte)(mixed * 128.0f);
+                        byte outputSample = (byte) (mixed * 128.0f);
                         data[start + i] = outputSample;
                     }
-                }
-                else {
+                } else {
                     LogUtil.info(TAG, String.format(Locale.US,
                             "wait for enough audio track data %d.%d",
                             left, byteCount));
@@ -3179,8 +3059,7 @@ public class CameraRecorderView extends SurfaceView
 //                System.arraycopy(data, start, mAudioBuf, mAudioBufWrite, byteCount);
 //                mAudioBufWrite += byteCount;
 //            }
-        }
-        finally {
+        } finally {
             mAudioLock.unlock();
         }
     }
@@ -3252,17 +3131,6 @@ public class CameraRecorderView extends SurfaceView
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
         LogUtil.info(TAG, "Java: surfaceDestroyed()");
-
-        if (mbTextureEncode) {
-            if (m_use_faceunity && m_faceunity_inited) {
-                if (m_items[0] != 0) {
-                    faceunity.fuDestroyItem(m_items[0]);
-                    m_items[0] = 0;
-                }
-                faceunity.fuDone();
-                m_faceunity_inited = false;
-            }
-        }
 
         mbSetupWhenStart = true;
         mbSurfaceCreated = false;

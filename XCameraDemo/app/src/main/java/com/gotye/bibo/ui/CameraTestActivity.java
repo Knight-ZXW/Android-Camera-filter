@@ -11,7 +11,6 @@ import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.hardware.Camera;
 import android.media.AudioManager;
 import android.media.MediaActionSound;
 import android.net.Uri;
@@ -45,18 +44,14 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.livebroadcast.ArcSpotlightProcessor;
-import com.livebroadcast.ArcSpotlightResult;
 import com.gotye.bibo.R;
 import com.gotye.bibo.adapter.FilterAdapter;
 import com.gotye.bibo.encode.EncoderConfig;
 import com.gotye.bibo.filter.FilterManager.FilterType;
 import com.gotye.bibo.ui.widget.CameraRecorderView;
-import com.gotye.bibo.ui.widget.FaceOverlayView;
 import com.gotye.bibo.ui.widget.HorizontialListView;
 import com.gotye.bibo.ui.widget.LrcTextView;
 import com.gotye.bibo.util.AudioUtil;
-import com.gotye.bibo.util.FaceUtil;
 import com.gotye.bibo.util.LogUtil;
 import com.gotye.bibo.util.LrcDownloadUtil;
 import com.gotye.bibo.util.LrcInfo;
@@ -64,6 +59,7 @@ import com.gotye.bibo.util.LrcParser2;
 import com.gotye.bibo.util.Song;
 import com.gotye.bibo.util.TimeLrc;
 import com.gotye.bibo.util.Util;
+import com.livebroadcast.ArcSpotlightProcessor;
 
 import java.io.File;
 import java.io.IOException;
@@ -92,7 +88,6 @@ public class CameraTestActivity extends AppCompatActivity
     private MainHandler mHandler;
 
     private CameraRecorderView mView;
-    private FaceOverlayView mFaceView;
     private LinearLayout mCtrlLayout;
     private Button mBtnRecord;
     private ImageButton mBtnBeautify;
@@ -116,11 +111,8 @@ public class CameraTestActivity extends AppCompatActivity
     private boolean mbEncodeAudio = true;
     private int mMuxFmt = 1; // 0-ts, 1-mp4, 2-flv, 3-h264, 4-rtmp
     private String mCustomizedOutputPath;
-    private boolean mbTextureEncode = true; //默认为纹理编码，只有纹理编码才支持 滤镜 以及贴图
+    private boolean mbTextureEncode = true; //默认为纹理编码，只有纹理编码才支持
     private boolean mbTorch = false;
-
-    private boolean mbEnableFaceDetection = false;
-    private boolean mbFaceDetectionRunning = false;
 
     private boolean mbEnableColorPicker = false;
 
@@ -203,8 +195,6 @@ public class CameraTestActivity extends AppCompatActivity
         mView = (CameraRecorderView)this.findViewById(R.id.cam_view);
         mView.setEncoderListener(mEncoderListener);
         mView.setCameraListener(mCameraListener);
-
-        mFaceView = (FaceOverlayView)this.findViewById(R.id.face_detect_view);
 
         mCtrlLayout = (LinearLayout)this.findViewById(R.id.layout_button); //左边的功能布局
 
@@ -461,8 +451,6 @@ public class CameraTestActivity extends AppCompatActivity
 
         mView.onResume();
 
-        mFaceView.setFaces(null);
-
         updateBeautifyUI();
     }
 
@@ -503,7 +491,6 @@ public class CameraTestActivity extends AppCompatActivity
         mView.onPause();
 
         if (isFinishing()) {
-            stopFaceDetection();
         }
 
         writeSettings();
@@ -540,8 +527,7 @@ public class CameraTestActivity extends AppCompatActivity
                 "美颜2", "美颜3",
                 "贴纸",
                 "卡通1", "卡通2", "卡通3", "卡通4", "卡通5",
-                "高斯模糊", "双边模糊", "马赛克", "选择模糊",
-                "脸检测", "边缘检测1", "锐化",
+                "高斯模糊", "双边模糊", "马赛克", "选择模糊", "边缘检测1", "锐化",
                 "破碎", "乐高", "水波纹",
                 "边缘检测2", "像素化", "轮廓1",
                 "融合", "柔光", "曲线", "线条",
@@ -554,7 +540,7 @@ public class CameraTestActivity extends AppCompatActivity
                 "Cartoon", "Toon", "SmoothToon", "BritneyCartoon", "Cartoonish",
                 "GaussianBlur", "BilateralBlur",
                 "MosaicBlur", "GaussianSelectiveBlur",
-                "FaceColor", "CannyEdgeDetection", "Sharpen",
+                 "CannyEdgeDetection", "Sharpen",
                 "Cracked", "Legofield", "BasicDeform",
                 "EdgeDetectiondFdx", "Pixelize", "NoiseContour",
                 "Blend", "SoftLight", "ToneCurve",
@@ -578,7 +564,6 @@ public class CameraTestActivity extends AppCompatActivity
                 R.drawable.filter_thumb_blur,
                 R.drawable.filter_thumb_mosaic,
                 R.drawable.filter_thumb_blur,
-                R.drawable.filter_thumb_original, // 脸检测
                 R.drawable.filter_thumb_edge_detection,
                 R.drawable.filter_thumb_sharpen,
                 R.drawable.filter_thumb_original, // 破碎
@@ -1290,7 +1275,6 @@ public class CameraTestActivity extends AppCompatActivity
         LayoutInflater inflater = LayoutInflater.from(this);
         View view = inflater.inflate(R.layout.all_settings_dialog, null);
         final CheckBox cbEnableAudio = (CheckBox)view.findViewById(R.id.cb_enable_audio);
-        final CheckBox cbEnableFaceDectection = (CheckBox)view.findViewById(R.id.cb_enable_face_detection);
         final CheckBox cbEnableColorPicker = (CheckBox)view.findViewById(R.id.cb_enable_color_picker);
         final CheckBox cbTextureEncode = (CheckBox)view.findViewById(R.id.cb_texture_encode);
         final CheckBox cbX264Encode = (CheckBox)view.findViewById(R.id.cb_x264_encode);
@@ -1338,13 +1322,6 @@ public class CameraTestActivity extends AppCompatActivity
 
         // read data
         cbEnableAudio.setChecked(mbEncodeAudio);
-        if (!mView.isSupportArcSoftFaceDetection()) {
-            cbEnableFaceDectection.setChecked(false);
-            cbEnableFaceDectection.setEnabled(false);
-        }
-        else {
-            cbEnableFaceDectection.setChecked(mbEnableFaceDetection);
-        }
         cbEnableColorPicker.setChecked(mbEnableColorPicker);
         etFrameRate.setText(String.valueOf(mVideoFrameRate));
         cbTextureEncode.setChecked(mbTextureEncode);
@@ -1446,7 +1423,6 @@ public class CameraTestActivity extends AppCompatActivity
             public void onClick(DialogInterface dialog, int which) {
                 // save data
                 mbEncodeAudio = cbEnableAudio.isChecked();
-                mbEnableFaceDetection = cbEnableFaceDectection.isChecked();
                 mbEnableColorPicker = cbEnableColorPicker.isChecked();
                 mVideoFrameRate = Integer.valueOf(etFrameRate.getText().toString());
                 mVideoBitRate = sbBitrate.getProgress() * 1000;
@@ -1464,11 +1440,6 @@ public class CameraTestActivity extends AppCompatActivity
                 mView.setExtureEncodeMode(mbTextureEncode);
                 updateBeautifyUI();
 
-                if (mbEnableFaceDetection)
-                    startArcSoftFaceDetection();
-                else
-                    stopArcSoftFaceDetection();
-
                 mView.setColorPicker(mbEnableColorPicker);
 
                 writeSettings();
@@ -1479,113 +1450,6 @@ public class CameraTestActivity extends AppCompatActivity
         builder.show();
     }
 
-    private boolean startArcSoftFaceDetection() {
-        LogUtil.info(TAG, "startArcSoftFaceDetection()");
-
-        if (mbFaceDetectionRunning) {
-            LogUtil.warn(TAG, "face detection already running");
-            return true;
-        }
-
-        if (mProcessCallback == null) {
-            mProcessCallback = new ArcSpotlightProcessor.ProcessCallback() {
-                @Override
-                public void onCallback(int result, final ArcSpotlightResult faces) {
-                    if (result != 0)
-                        return;
-
-                    if (faces != null && faces.faceCount > 0) {
-                        /*LogUtil.debug(TAG, String.format(Locale.US,
-                            "onCallback: face count %d, rect count %d",
-                            faces.faceCount,
-                            faces.faceRects.length));*/
-
-                        /*int rectCount = faces.faceRects.length;
-                        for (int i=0;i<rectCount;i++) {
-                            Rect r = faces.faceRects[i];
-                            int orientation = faces.faceOrientations[i];
-                            LogUtil.debug(TAG, String.format(Locale.US,
-                                "onCallback: rect #%d orientaion %d, [l: %d, t: %d, r: %d, b: %d]",
-                                i, orientation,
-                                r.left, r.top, r.right, r.bottom));
-                        }*/
-
-                        CameraTestActivity.this.runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                //mFaceView.setFaces2(faces.faceRects, faces.faceOutlinePoints, faces.faceOrientations);
-                            }
-                        });
-
-                    }
-                    else {
-                        CameraTestActivity.this.runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                mFaceView.setFaces2(null, null, null);
-                            }
-                        });
-                    }
-                }
-            };
-        }
-
-        int orientationCompensation = mView.getOrientation()
-                + FaceUtil.getDisplayRotation(CameraTestActivity.this);
-        mFaceView.setOrientation(orientationCompensation);
-        int displayOrientation = mView.getDisplayOrientation();
-        mFaceView.setDisplayOrientation(displayOrientation);
-        mFaceView.setFontFacing(mView.isFrontFacing());
-
-        mView.startArcSoftFaceDetection();
-        mView.setArcSoftFaceDetectionCallback(mProcessCallback);
-        mbFaceDetectionRunning = true;
-        LogUtil.info(TAG, "face detection started");
-        return true;
-    }
-
-    private boolean startFaceDetection() {
-        if (mbFaceDetectionRunning) {
-            return true;
-        }
-
-        int orientationCompensation = mView.getOrientation()
-                + FaceUtil.getDisplayRotation(CameraTestActivity.this);
-        mFaceView.setOrientation(orientationCompensation);
-        int displayOrientation = mView.getDisplayOrientation();
-        mFaceView.setDisplayOrientation(displayOrientation);
-        mFaceView.setFontFacing(mView.isFrontFacing());
-
-        mView.setFaceDetectionListener(mFaceDetectionListener);
-        mView.startFaceDetection();
-        mbFaceDetectionRunning = true;
-        return true;
-    }
-
-    public void stopArcSoftFaceDetection() {
-        LogUtil.info(TAG, "stopArcSoftFaceDetection()");
-
-        if (mbFaceDetectionRunning) {
-            mView.setArcSoftFaceDetectionCallback(null);
-            mView.stopArcSoftFaceDetection();
-
-            mFaceView.setFaces2(null, null, null);
-
-            mbFaceDetectionRunning = false;
-            LogUtil.info(TAG, "face detection stopped");
-        }
-    }
-
-    public void stopFaceDetection() {
-        if (mbFaceDetectionRunning) {
-            mView.stopFaceDetection();
-            mView.setFaceDetectionListener(null);
-
-            mFaceView.setFaces(null);
-
-            mbFaceDetectionRunning = false;
-        }
-    }
 
     private CameraRecorderView.CameraListener mCameraListener = new CameraRecorderView.CameraListener() {
         @Override
@@ -1603,15 +1467,6 @@ public class CameraTestActivity extends AppCompatActivity
                     // preview size change to OFF face detection automatically
                     //stopArcSoftFaceDetection();
                     //mbEnableFaceDetection = false;
-
-                    if (mbEnableFaceDetection) {
-                        // restart detection(set new resolution)
-                        stopArcSoftFaceDetection();
-
-                        startArcSoftFaceDetection();
-                    }
-
-                    mFaceView.setPreviewSize(width, height);
                 }
             });
         }
@@ -1654,17 +1509,6 @@ public class CameraTestActivity extends AppCompatActivity
         }
     };
 
-    private Camera.FaceDetectionListener mFaceDetectionListener = new Camera.FaceDetectionListener() {
-        @Override
-        public void onFaceDetection(final Camera.Face[] faces, Camera camera) {
-            CameraTestActivity.this.runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    mFaceView.setFaces(faces);
-                }
-            });
-        }
-    };
 
     @Override
     public void takePictureOK(Bitmap bmp) {

@@ -4,12 +4,14 @@ import android.content.Context;
 import android.graphics.PointF;
 
 import com.gotye.bibo.R;
+import com.gotye.bibo.util.LogUtil;
 
 
 public class FilterManager {
 
+    private static final String TAG = "FilterManager";
     private static int mCurveIndex;
-    private static int[] mCurveArrays = new int[] {
+    private static int[] mCurveArrays = new int[]{
             R.raw.cross_1, R.raw.cross_2, R.raw.cross_3, R.raw.cross_4, R.raw.cross_5,
             R.raw.cross_6, R.raw.cross_7, R.raw.cross_8, R.raw.cross_9, R.raw.cross_10,
             R.raw.cross_11,
@@ -29,11 +31,10 @@ public class FilterManager {
                 return new CameraFilterBlendSoftLight(context, R.drawable.mask);
             case ToneCurve:
                 if (params != null && params.length > 0) {
-                    mCurveIndex = (int)(params[0] * 11f);
+                    mCurveIndex = (int) (params[0] * 11f);
                     if (mCurveIndex > mCurveArrays.length - 1)
                         mCurveIndex = mCurveArrays.length - 1;
-                }
-                else {
+                } else {
                     mCurveIndex++;
                     if (mCurveIndex > mCurveArrays.length - 1) {
                         mCurveIndex = 0;
@@ -58,8 +59,7 @@ public class FilterManager {
                             new CameraFilterCannyEdgeDetection(context),
                             new CameraFilter(context),
                             new ImageFilterBeautify(context));
-                }
-                else {
+                } else {
                     return new ImageFilterThreeInput(context,
                             new CameraFilterBilateralBlur(context, 6f, 3f),
                             new CameraFilterCannyEdgeDetection(context),
@@ -73,8 +73,7 @@ public class FilterManager {
                             new CameraFilterCannyEdgeDetection(context),
                             new CameraFilter(context),
                             new ImageFilterBeautifyTest(context));
-                }
-                else {
+                } else {
                     return new ImageFilterThreeInput(context,
                             new CameraFilterBilateralBlur(context, 6f, 3f),
                             new CameraFilterCannyEdgeDetection(context),
@@ -87,10 +86,13 @@ public class FilterManager {
                 else
                     return new CameraFilterAllinOne(context, 6f, 3f);
             case BeautyFaceWu:
-                if (params != null && params.length > 0)
-                    return new CameraFilterBeautifyFaceWu(context, params[0], params[1]);
-                else
-                    return new CameraFilterBeautifyFaceWu(context);
+                if (params != null && params.length > 0) //todo 出现一个 越界异常时为什么
+                    if (params.length == 1) {
+                        LogUtil.error(TAG, "BeautyFaceWu 数组异常");
+                        return new CameraFilterBeautifyFaceWu(context, params[0], params[1]);
+
+                    } else
+                        return new CameraFilterBeautifyFaceWu(context);
             case Brightness:
                 return new CameraFilterBrightness(context, 0.1f);
             case Saturation:
@@ -163,8 +165,7 @@ public class FilterManager {
                     scale = params[1];
                     center = new PointF(params[2], params[3]);
                     return new CameraFilterBulgeDistortion(context, radius, scale, center);
-                }
-                else
+                } else
                     return new CameraFilterBulgeDistortion(context);
             case PinchDistortion:
                 if (params != null && params.length > 0) {
@@ -174,28 +175,26 @@ public class FilterManager {
                     scale = params[1];
                     center = new PointF(params[2], params[3]);
                     return new CameraFilterPinchDistortion(context, radius, scale, center);
-                }
-                else
+                } else
                     return new CameraFilterPinchDistortion(context);
             case StretchDistortion:
                 return new CameraFilterStretchDistortion(context);
             case AsciiArt:
                 if (params != null && params.length > 0) {
                     return new CameraFilterAsciiArt(context, params[0] > 0.5);
-                }
-                else {
+                } else {
                     return new CameraFilterAsciiArt(context);
                 }
             case AsciiArt2:
                 return new CameraFilterAsciiArt2(context);
             case ChromaKey:
                 if (params != null && params.length > 0)
-                    return new CameraFilterChromaKey(context, 0f, 1f, 0f, R.drawable.bg1, params[0],  params[1]);
+                    return new CameraFilterChromaKey(context, 0f, 1f, 0f, R.drawable.bg1, params[0], params[1]);
                 else
                     return new CameraFilterChromaKey(context, 0f, 1f, 0f, R.drawable.bg1);
             case ChromaKeyBlend:
                 if (params != null && params.length > 0)
-                    return new CameraFilterChromaKeyBlend(context, 0f, 1f, 0f, R.drawable.bg1, params[0],  params[1]);
+                    return new CameraFilterChromaKeyBlend(context, 0f, 1f, 0f, R.drawable.bg1, params[0], params[1]);
                 else
                     return new CameraFilterChromaKeyBlend(context, 0f, 1f, 0f, R.drawable.bg1);
             case FaceUnity:
@@ -216,11 +215,10 @@ public class FilterManager {
                 return new ImageFilterBlendSoftLight(context, R.drawable.mask);
             case ToneCurve:
                 if (params != null && params.length > 0) {
-                    mCurveIndex = (int)(params[0] * 11f);
+                    mCurveIndex = (int) (params[0] * 11f);
                     if (mCurveIndex > mCurveArrays.length - 1)
                         mCurveIndex = mCurveArrays.length - 1;
-                }
-                else {
+                } else {
                     mCurveIndex++;
                     if (mCurveIndex > mCurveArrays.length - 1) {
                         mCurveIndex = 0;
@@ -290,7 +288,7 @@ public class FilterManager {
                 if (params != null && params.length > 0)
                     return new ImageFilterWhite(context, params[0], params[1]);
                 else
-                return new ImageFilterWhite(context);
+                    return new ImageFilterWhite(context);
             case MosaicBlur:
                 if (params != null && params.length > 0)
                     return new ImageFilterMosaicBlur(context, 8f, params[0]);
@@ -310,8 +308,7 @@ public class FilterManager {
                         if (params[0] > 0.3f) {
                             excludePoint1 = new PointF(params[1], 0.0f);
                             excludePoint2 = new PointF(params[1], 1.0f);
-                        }
-                        else {
+                        } else {
                             excludePoint1 = new PointF(0.0f, params[1]);
                             excludePoint2 = new PointF(1.0f, params[1]);
                         }
@@ -320,8 +317,7 @@ public class FilterManager {
                         return new ImageFilterGaussianSelectiveBlur(context,
                                 blurRadius, excludeCircleRadius,
                                 excludePoint1, excludePoint2, excludeBlurSize);
-                    }
-                    else {
+                    } else {
                         float blurRadius = 4.0f;
                         float excludeCircleRadius = params[1];
                         PointF excludeCirclePoint = new PointF(0.5f, 0.5f);
@@ -330,8 +326,7 @@ public class FilterManager {
                                 blurRadius, excludeCircleRadius,
                                 excludeCirclePoint, excludeBlurSize);
                     }
-                }
-                else {
+                } else {
                     return new ImageFilterGaussianSelectiveBlur(context);
                 }
             case Cracked:
@@ -360,8 +355,7 @@ public class FilterManager {
                     scale = params[1];
                     center = new PointF(params[2], params[3]);
                     return new ImageFilterBulgeDistortion(context, radius, scale, center);
-                }
-                else
+                } else
                     return new ImageFilterBulgeDistortion(context);
             case PinchDistortion:
                 if (params != null && params.length > 0) {
@@ -371,16 +365,14 @@ public class FilterManager {
                     scale = params[1];
                     center = new PointF(params[2], params[3]);
                     return new ImageFilterPinchDistortion(context, radius, scale, center);
-                }
-                else
+                } else
                     return new ImageFilterPinchDistortion(context);
             case StretchDistortion:
                 return new ImageFilterStretchDistortion(context);
             case AsciiArt:
                 if (params != null && params.length > 0) {
                     return new ImageFilterAsciiArt(context, params[0] > 0.5);
-                }
-                else {
+                } else {
                     return new ImageFilterAsciiArt(context);
                 }
 
@@ -439,10 +431,10 @@ public class FilterManager {
         }
 
         public static FilterType fromCanonicalForm(String canonical) {
-            return (FilterType)valueOf(FilterType.class, canonical/*.toUpperCase()*/);
+            return (FilterType) valueOf(FilterType.class, canonical/*.toUpperCase()*/);
         }
-		
-		public boolean isSingleFilter() {
+
+        public boolean isSingleFilter() {
             boolean ret = false;
             if (this.name().equals("Normal") ||
                     this.name().equals("Gray") ||
@@ -453,7 +445,7 @@ public class FilterManager {
                     this.name().equals("White") ||
                     this.name().equals("Cartoon") ||
                     this.name().equals("Toon") ||
-					this.name().equals("Sharpen") || 
+                    this.name().equals("Sharpen") ||
                     this.name().equals("MosaicBlur") ||
                     this.name().equals("FaceColor") ||
                     this.name().equals("Cracked") ||
@@ -467,9 +459,8 @@ public class FilterManager {
                     this.name().equals("BritneyCartoon") ||
                     this.name().contains("Distortion") ||
                     this.name().contains("AsciiArt") ||
-                    this.name().contains("ChromaKey") || 
-					this.name().equals("FaceUnity"))
-            {
+                    this.name().contains("ChromaKey") ||
+                    this.name().equals("FaceUnity")) {
                 ret = true;
             }
 

@@ -59,7 +59,6 @@ public class CameraController
     private boolean mIsSupportAutoFocus = false;
     private boolean mIsSupportAutoFocusContinuousVideo = false;
     private boolean mIsSupportAutoFocusContinuousPicture = false;
-    private boolean mbFaceDetectionRunning = false;
 
     private int DEFAULT_PICTURE_WIDTH = 1920;
     private int DEFAULT_PICTURE_HEIGHT = 1080;
@@ -84,6 +83,7 @@ public class CameraController
 
     /**
      * 检查是否支持前置摄像头
+     *
      * @param frontPriority
      * @return
      */
@@ -108,7 +108,8 @@ public class CameraController
     }
 
     /**
-     *是否支持脸部检测
+     * 是否支持脸部检测
+     *
      * @return
      */
     public boolean supportFaceDetection() {
@@ -120,12 +121,12 @@ public class CameraController
             LogUtil.warn(TAG, "Face Detection not supported");
             return false;
         }
-
         return true;
     }
 
     /**
      * 摄像头 方向
+     *
      * @return
      */
     public int getDisplayOrientation() {
@@ -134,10 +135,11 @@ public class CameraController
 
     /**
      * 配置Camera
+     *
      * @param context
-     * @param desiredPictureWidth 希望展示的宽度
+     * @param desiredPictureWidth  希望展示的宽度
      * @param desiredPictureHeight 希望展示的高度
-     * @param orientation  角度
+     * @param orientation          角度
      * @return
      */
     public boolean setupCamera(Context context,
@@ -161,11 +163,10 @@ public class CameraController
                 LogUtil.info(TAG, "Java: cameraInfo.orientation " + cameraInfo.orientation);
                 if (mCameraMirrored) {
                     mOrientation = (orientation + 360 - cameraInfo.orientation) % 360;
-                    LogUtil.info(TAG,"mOrientation is "+mOrientation);
-                }
-                else {
+                    LogUtil.info(TAG, "mOrientation is " + mOrientation);
+                } else {
                     mOrientation = (orientation + cameraInfo.orientation) % 360;
-                    LogUtil.info(TAG,"mOrientation is "+mOrientation);
+                    LogUtil.info(TAG, "mOrientation is " + mOrientation);
                 }
                 LogUtil.info(TAG, "Java: setDisplayOrientation " + mOrientation);
                 mCamera.setDisplayOrientation(mOrientation);
@@ -184,7 +185,7 @@ public class CameraController
             }
 
             if (mCamera == null) {
-                LogUtil.error(TAG,"case there, unable init camear");
+                LogUtil.error(TAG, "case there, unable init camear");
                 //Toast.makeText(mContext, "Unable to start camera", Toast.LENGTH_SHORT).showFromSession();
                 return false;
             }
@@ -223,15 +224,14 @@ public class CameraController
                 // 预览尺寸
                 if (previewSize != null) {
                     cp.setPreviewSize(previewSize.width, previewSize.height);
-                }
-                else {
+                } else {
                     LogUtil.warn(TAG, "Java: previewSize is null");
                 }
 
                 //拍照尺寸
                 cp.setPictureSize(mCameraPictureSize.width, mCameraPictureSize.height);
                 List<Integer> picFormatList = cp.getSupportedPictureFormats();
-                for (int i=0;i<picFormatList.size();i++) {
+                for (int i = 0; i < picFormatList.size(); i++) {
                     LogUtil.info(TAG, String.format(Locale.US,
                             "supported picture format #%d: %d", i, picFormatList.get(i)));
                 }
@@ -298,7 +298,7 @@ public class CameraController
                 boolean setRange = setFpsRange;
                 LogUtil.info(TAG, "Device model: " + Build.MODEL);
                 if (setRange) {
-                    for (int i=0;i<deviceList.length;i++) {
+                    for (int i = 0; i < deviceList.length; i++) {
                         if (deviceList[i].equals(Build.MODEL)) {
                             setRange = false;
                             LogUtil.warn(TAG, "DISABLE set preview fps range");
@@ -404,7 +404,7 @@ public class CameraController
                         LogUtil.info(TAG, String.format(Locale.US,
                                 "Java: camera preview format %d, bpp %d, size %d",
                                 prev_fmt, bpp, size));
-                        for (int i=0;i<bufCount;i++) {
+                        for (int i = 0; i < bufCount; i++) {
                             byte[] cameraBuffer = new byte[size];
                             mCamera.addCallbackBuffer(cameraBuffer);
                         }
@@ -433,48 +433,6 @@ public class CameraController
                 }
             }
         }
-    }
-
-    public boolean startFaceDetection() {
-        LogUtil.info(TAG, "Java: startFaceDetection()");
-
-        if (mCamera != null) {
-            synchronized (mLock) {
-                try {
-                    if (mCamera.getParameters().getMaxNumDetectedFaces() <= 0) {
-                        LogUtil.error(TAG, "Face Detection not supported");
-                        return false;
-                    }
-
-                    mCamera.startFaceDetection();
-                    mbFaceDetectionRunning = true;
-                    return true;
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-
-        return false;
-    }
-
-    public void stopFaceDetection() {
-        LogUtil.info(TAG, "Java: stopFaceDetection()");
-
-        if (mCamera != null) {
-            synchronized (mLock) {
-                try {
-                    mCamera.stopFaceDetection();
-                    mbFaceDetectionRunning = false;
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    }
-
-    public boolean isFaceDectionRunning() {
-        return mbFaceDetectionRunning;
     }
 
     public boolean stopCameraPreview() {
@@ -511,6 +469,7 @@ public class CameraController
             }
         }
     }
+
     //todo 改名字
     public void enableTorch(boolean enable) {
         if (mCamera != null) {
@@ -523,13 +482,13 @@ public class CameraController
             if (enable) {
                 if (supportTorch) {
                     parameters.setFlashMode(Camera.Parameters.FLASH_MODE_TORCH);
-                }
-                else {
+                } else {//fuck it i just wanna try it
                     LogUtil.warn(TAG, "camera NOT support FLASH_MODE_TORCH");
+                    LogUtil.warn(TAG,"虽然不支持闪光灯，但是我还是想试一下! 结果呢");
+                    parameters.setFlashMode(Camera.Parameters.FLASH_MODE_TORCH);
                     return;
                 }
-            }
-            else {
+            } else {
                 parameters.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);
             }
 
@@ -626,7 +585,7 @@ public class CameraController
     private void findCameraSupportValue(int desiredWidth, int desiredHeight) {
         Camera.Parameters cp = getCameraParameters();
         List<Camera.Size> cs = cp.getSupportedPictureSizes();
-        Log.i(TAG,"该设备支持的Size 有"+cs);
+        Log.i(TAG, "该设备支持的Size 有" + cs);
         if (cs != null && !cs.isEmpty()) {
             Collections.sort(cs, mCameraPictureSizeComparator);
             for (Camera.Size size : cs) {
@@ -647,6 +606,7 @@ public class CameraController
 
     /**
      * 拍张照
+     *
      * @param shutter 回调
      * @param raw
      * @param jpeg
@@ -672,6 +632,7 @@ public class CameraController
 
     /**
      * 设置 zoom
+     *
      * @param bZoomIn
      */
     public void setZoomInternal(boolean bZoomIn) {
@@ -701,7 +662,8 @@ public class CameraController
     //////////////////// implements ////////////////////
 
     //AutoFocusCallback
-    @Override public void onAutoFocus(boolean success, Camera camera) {
+    @Override
+    public void onAutoFocus(boolean success, Camera camera) {
         LogUtil.info(TAG, "onAutoFocus " + success);
         mHandler.sendEmptyMessageDelayed(RESET_TOUCH_FOCUS, RESET_TOUCH_FOCUS_DELAY);
 
@@ -709,7 +671,8 @@ public class CameraController
     }
 
     //ErrorCallback
-    @Override public void onError(int error, Camera camera) {
+    @Override
+    public void onError(int error, Camera camera) {
         LogUtil.error(TAG, "Camera onError(): " + error);
     }
 
@@ -733,6 +696,7 @@ public class CameraController
 
     /**
      * 设置摄像头
+     *
      * @param cameraIndex 前置或者后置
      */
     public void setCameraIndex(int cameraIndex) {
@@ -755,12 +719,14 @@ public class CameraController
             this.listener = listener;
         }
 
-        @Override public void handleMessage(Message msg) {
+        @Override
+        public void handleMessage(Message msg) {
             listener.handleMessage(msg);
         }
     }
 
-    @Override public void handleMessage(Message msg) {
+    @Override
+    public void handleMessage(Message msg) {
         switch (msg.what) {
             case RESET_TOUCH_FOCUS: {
                 if (mCamera == null || mAutoFocusLocked) {
