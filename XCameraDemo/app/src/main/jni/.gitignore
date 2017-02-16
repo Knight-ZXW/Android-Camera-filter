@@ -1,0 +1,11 @@
+/x264
+/fdk-aac
+/ffmpeg
+/rtmpdump
+/libyuv
+
+/Debug
+
+*.suo
+*.so
+*.a

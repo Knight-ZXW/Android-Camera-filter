@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/black"
+    tools:context="com.gotye.bibo.ui.CameraTestActivity"
+    tools:ignore="MergeRootFrame" >
+    <com.gotye.bibo.ui.widget.CameraRecorderView
+        android:id="@+id/cam_view"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"/>
+    <com.gotye.bibo.ui.widget.FaceOverlayView
+        android:id="@+id/face_detect_view"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"/>
+    <android.opengl.GLSurfaceView
+        android:id="@+id/gl_surface"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"/>
+    <LinearLayout
+        android:id="@+id/layout_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentTop="true"
+        android:orientation="vertical">
+        <Button
+            android:id="@+id/button_record"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/record_start" />
+        <Button
+            android:id="@+id/button_option"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/btn_all_settings" />
+        <Button
+            android:id="@+id/button_cam_res"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/btn_cam_resolution" />
+        <Button
+            android:id="@+id/button_viewclip"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/btn_view_clip" />
+
+        <Button
+            android:id="@+id/button_play_song"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/button_play_song" />
+        <Button
+            android:id="@+id/button_song_settings"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/button_song_settings"
+            android:visibility="gone"/>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tv_music_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_below="@id/layout_button"
+        android:text="01:32"
+        android:textSize="24sp"
+        android:textColor="#FF0000"
+        android:visibility="gone"/>
+
+    <ImageButton
+        android:id="@+id/button_cam_switch"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentRight="true"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="#00000000"
+        android:src="@mipmap/camera_button_switch" />
+
+    <ImageButton
+        android:id="@+id/button_cam_torch"
+        android:layout_below="@id/button_cam_switch"
+        android:layout_alignParentRight="true"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="#00000000"
+        android:src="@mipmap/camera_torch_off" />
+
+    <TextView
+        android:id="@+id/tv_info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_toRightOf="@id/layout_button"
+        android:textColor="#FF0000" />
+    <TextView
+        android:id="@+id/tv_record_duration"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_toRightOf="@id/layout_button"
+        android:layout_below="@id/tv_info"
+        android:textColor="#FF0000"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/tv_countdown"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#FFFFFF"
+        android:textSize="32sp"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="100dp"
+        android:visibility="visible" />
+
+    <com.gotye.bibo.ui.widget.LrcTextView
+        android:id="@+id/tv_lyric"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:layout_below="@id/tv_record_duration"
+        android:layout_toRightOf="@id/layout_button"
+        android:visibility="gone"
+        android:background="#50000000"/>
+
+    <ImageButton
+        android:id="@+id/button_beautify"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="#00000000"
+        android:src="@mipmap/beautify" />
+
+    <Button
+        android:id="@+id/button_toggle_filter"
+        android:layout_above="@id/button_beautify"
+        android:layout_alignParentRight="true"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="滤镜"
+        android:visibility="gone"/>
+
+    <SeekBar
+        android:id="@+id/seekbar_beautify"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_toLeftOf="@id/button_beautify"
+        android:background="#90FFFFFF"
+        android:layout_marginRight="50dp"
+        android:layout_marginBottom="10dp"/>
+
+    <com.gotye.bibo.ui.widget.HorizontialListView
+        android:id="@+id/hlv_filter"
+        android:layout_width="350dp"
+        android:layout_height="64dp"
+        android:layout_above="@id/seekbar_beautify"
+        android:layout_marginBottom="50dp"
+        android:visibility="gone"/>
+</RelativeLayout>

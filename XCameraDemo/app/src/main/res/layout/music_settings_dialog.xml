@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"  
+    android:layout_width="match_parent"  
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="#FFFFFF" >  
+	
+	<TextView
+		android:id="@+id/tv_voice_volume"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" 
+        android:textSize="16sp"
+		android:text="人声音量: 100"/>
+	<SeekBar
+		android:id="@+id/seekbar_voice"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+	<TextView
+		android:id="@+id/tv_music_volume"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:textSize="16sp"
+        android:text="音乐音量: 100"/>
+	<SeekBar
+		android:id="@+id/seekbar_music"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content" />
+
+	<TextView
+		android:id="@+id/tv_system_volume"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:textSize="16sp"
+		android:text="系统音量: 100"/>
+	<SeekBar
+		android:id="@+id/seekbar_system"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content" />
+
+</LinearLayout>
