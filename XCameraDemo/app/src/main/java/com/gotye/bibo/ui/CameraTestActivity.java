@@ -654,9 +654,6 @@ public class CameraTestActivity extends AppCompatActivity
                         case 2:
                             mUrl += ".flv";
                             break;
-                        case 3:
-                            mUrl += ".h264";
-                            break;
                         default:
                             mUrl += ".mp4";
                             LogUtil.warn(TAG, "Java: invalid mux format: " + mMuxFmt);
