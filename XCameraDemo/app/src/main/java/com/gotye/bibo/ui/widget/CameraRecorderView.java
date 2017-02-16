@@ -10,7 +10,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
 import android.graphics.Point;
-import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
@@ -42,7 +41,6 @@ import com.gotye.bibo.encode.EncoderConfig;
 import com.gotye.bibo.encode.TextureEncoder;
 import com.gotye.bibo.filter.FilterManager;
 import com.gotye.bibo.filter.FilterManager.FilterType;
-import com.gotye.bibo.filter.ResImageFilter;
 import com.gotye.bibo.gles.EglCore;
 import com.gotye.bibo.gles.FrameBufferObject;
 import com.gotye.bibo.gles.FullFrameRect;
@@ -62,11 +60,7 @@ import com.gotye.sdk.FFMuxer;
 import com.gotye.sdk.MyAudioRecorder;
 import com.gotye.sdk.PPAudioEncoder;
 import com.gotye.sdk.PPEncoder;
-import com.livebroadcast.ArcSpotlightProcessor;
-import com.livebroadcast.ArcSpotlightResult;
-import com.livebroadcast.ArcSpotlightVersion;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -79,7 +73,6 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.Properties;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -267,9 +260,6 @@ public class CameraRecorderView extends SurfaceView
     private int mPlayerTimeOffset = -1;
     private float mMixVolume = 1.0f;
 
-    // face detection
-    private Camera.FaceDetectionListener mFaceDetectionListener;
-
     // color picker
     private boolean mbEnableColorPicker = false;
 
@@ -301,10 +291,6 @@ public class CameraRecorderView extends SurfaceView
                     "/test2/bibo/" +
                     "track_data.dat";
     private final static long track_filesize = 5171084L;
-    private ArcSpotlightProcessor mProcessor;
-    private ArcSpotlightProcessor.ProcessCallback mProcessCallback;
-    private ArcSpotlightProcessor.ProcessCallback mProcessCallbackExt;
-    private Rect mFaceRect;
     private Point mNosePoint;
     private int mFaceOrientation;
     private android.graphics.Matrix mMatrix;
@@ -742,6 +728,11 @@ public class CameraRecorderView extends SurfaceView
         mSurfaceTextureStartTime = 0L;
     }
 
+    /**
+     * 调整方向
+     *
+     * @return
+     */
     private boolean swapWxH() {
         // phone 0,180 need swap     portait orientation 0,  backface cam_orientation 90
         // pad 90, 270 need swap     landscape orientation 0,  backface cam_orientation 0
@@ -886,107 +877,6 @@ public class CameraRecorderView extends SurfaceView
 
     public void setZoomOut() {
         CameraController.getInstance().setZoomOut();
-    }
-
-    public void setFaceDetectionListener(Camera.FaceDetectionListener listener) {
-        mFaceDetectionListener = listener;
-        CameraController.getInstance().setFaceDetectionListener(listener);
-    }
-
-    public void setArcSoftFaceDetectionCallback(ArcSpotlightProcessor.ProcessCallback callback) {
-        mProcessCallbackExt = callback;
-    }
-
-    public boolean startArcSoftFaceDetection() {
-        LogUtil.info(TAG, "startArcSoftFaceDetection()");
-
-        if (mProcessor == null) {
-            mProcessor = new ArcSpotlightProcessor(mContext);
-            ArcSpotlightVersion version = mProcessor.getVersion();
-            LogUtil.info(TAG, "arcsoft version: BuildDate " + version.BuildDate +
-                    ", Build " + version.Build +
-                    ", CopyRight " + version.CopyRight +
-                    ", Version " + version.Version +
-                    ", Codebase " + version.Codebase +
-                    ", Major " + version.Major +
-                    ", Minor " + version.Minor);
-
-            int result = mProcessor.init(track_filepath, 4/*face count*/);
-            if (result != 0) {
-                LogUtil.error(TAG, "arcsoft failed to init face detector result: " + result);
-                mProcessor.uninit();
-                mProcessor = null;
-                return false;
-            }
-
-            mProcessor.setProcessModel(
-                    ArcSpotlightProcessor.ASL_PROCESS_MODEL_FACEOUTLINE);
-        }
-
-        LogUtil.info(TAG, "arcsoft setInputDataFormat " + mPreviewWidth + " x " + mPreviewHeight);
-        mProcessor.setInputDataFormat(mPreviewWidth, mPreviewHeight,
-                ArcSpotlightProcessor.ASVL_PAF_NV21);
-
-        LogUtil.info(TAG, "arcsoft faceDetect inited");
-
-        if (mProcessCallback == null) {
-            mProcessCallback = new ArcSpotlightProcessor.ProcessCallback() {
-                @Override
-                public void onCallback(int result, ArcSpotlightResult faces) {
-                    if (result != 0)
-                        return;
-
-                    if (faces != null && faces.faceCount > 0) {
-                        /*LogUtil.debug(TAG, String.format(Locale.US,
-                            "onCallback: face count %d, rect count %d",
-                            faces.faceCount,
-                            faces.faceRects.length));*/
-
-                        /*int rectCount = faces.faceRects.length;
-                        for (int i=0;i<rectCount;i++) {
-                            Rect r = faces.faceRects[i];
-                            int orientation = faces.faceOrientations[i];
-                            LogUtil.debug(TAG, String.format(Locale.US,
-                                "onCallback: rect #%d orientaion %d, [l: %d, t: %d, r: %d, b: %d]",
-                                i, orientation,
-                                r.left, r.top, r.right, r.bottom));
-                        }*/
-                        mFaceRect = faces.faceRects[0];
-                        mNosePoint = faces.faceOutlinePoints[98];
-                        mFaceOrientation = faces.faceOrientations[0];
-                    } else {
-                        mFaceRect = null;
-                    }
-
-                    if (mProcessCallbackExt != null) {
-                        mProcessCallbackExt.onCallback(result, faces);
-                    }
-                }
-            };
-        }
-
-        return true;
-    }
-
-
-    public void stopArcSoftFaceDetection() {
-        // do nothing
-        // cannot close and re-alloc mProcessor
-    }
-
-    public boolean isSupportArcSoftFaceDetection() {
-        Properties props = System.getProperties();
-        String osArch = props.getProperty("os.arch");
-        if (osArch != null && osArch.contains("86")) {
-            return false;
-        }
-
-        File f = new File(track_filepath);
-        if (f.exists() && f.length() == track_filesize) {
-            return true;
-        }
-
-        return false;
     }
 
     public void setColorPicker(boolean ON) {
@@ -1435,7 +1325,7 @@ public class CameraRecorderView extends SurfaceView
             public void run() {
                 resetEncodeData();
 
-                if (mEncCfg.mUrl.endsWith(".h264"))
+                if (mEncCfg.mUrl.endsWith(".h264"))//如果是 h264则不适用FFmpegMux
                     mbUseFFmpegMux = false;
                 else
                     mbUseFFmpegMux = true;
@@ -1734,6 +1624,7 @@ public class CameraRecorderView extends SurfaceView
     public void onResume() {
         if (mOrientationListener != null)
             mOrientationListener.enable();
+
     }
 
     public void onPause() {
@@ -1799,11 +1690,6 @@ public class CameraRecorderView extends SurfaceView
 
         if (mOrientationListener != null)
             mOrientationListener.disable();
-
-        if (mProcessor != null) {
-            mProcessor.uninit();
-            mProcessor = null;
-        }
 
         if (mCameraHandler != null)
             mCameraHandler.removeCallbacksAndMessages(null);
@@ -2070,7 +1956,6 @@ public class CameraRecorderView extends SurfaceView
         FaceUtil.prepareArcSoftMatrixCamera(mMatrix,
                 !mbUseFrontCam, orientation,
                 mPreviewWidth, mPreviewHeight);
-        mRectF.set(mFaceRect);
         mMatrix.mapRect(mRectF);
 
         /*LogUtil.info(TAG, String.format(Locale.US,
@@ -2080,7 +1965,7 @@ public class CameraRecorderView extends SurfaceView
 
         int camera_width = mPreviewWidth;
         int camera_height = mPreviewHeight;
-        if (swapWxH()) {
+        if (swapWxH()) { //如果需要调整宽高
             camera_width = mPreviewHeight;
             camera_height = mPreviewWidth;
         }
@@ -2199,35 +2084,6 @@ public class CameraRecorderView extends SurfaceView
                 //        "color: r: %d, g: %d, b: %d", r, g, b));
             }
 
-
-            if (mFaceRect != null) {
-                if (mStikerFaceFrameBlit == null) {
-                    String idx_path = Environment.getExternalStorageDirectory().getAbsolutePath() +
-                            //"/test2/bibo/shy/fres_1471855085210.idx";
-                            "/test2/bibo/arcsoft_model/cat_ear/moustache/fres_1471855082855.idx";
-                    String dat_path = Environment.getExternalStorageDirectory().getAbsolutePath() +
-                            //"/test2/bibo/shy/fres_1471855085210.dat";
-                            "/test2/bibo/arcsoft_model/cat_ear/moustache/fres_1471855082855.dat";
-                    ResImageFilter filter = new ResImageFilter(mContext, idx_path, dat_path);
-                    mStickerRatio = (float) filter.getResWidth() / (float) filter.getResHeight();
-
-                    /*final BitmapFactory.Options options = new BitmapFactory.Options();
-                    options.inScaled = false;    // No pre-scaling
-                    final Bitmap bitmap =
-                            BitmapFactory.decodeResource(mContext.getResources(), R.drawable.rgb, options);
-                    mStickerTextureId = GlUtil.createTexture(GLES20.GL_TEXTURE_2D, bitmap);
-                    IFilter filter = FilterManager.getImageFilter(FilterType.Normal, mContext);
-                    mStickerRatio = 1f;*/
-
-                    mStikerFaceFrameBlit = new FullFrameRect(filter);
-                    mStickerTextureId = mStikerFaceFrameBlit.createTexture();
-
-                    mMatrix = new android.graphics.Matrix();
-                    mRectF = new RectF();
-                }
-
-                renderFaceSticker(mMvpScaleX, mMvpScaleY, true);
-            }
 
             if (mWatermarkFrame != null) {
                 float scaleX = (float) mWatermarkWidth / (float) mIncomingWidth * mMvpScaleX;
@@ -2416,11 +2272,6 @@ public class CameraRecorderView extends SurfaceView
                     mWatermarkFrame.scaleMVPMatrix(scaleX, -scaleY);
                     mWatermarkFrame.drawFrame(mWatermarkTextureId, IDENTITY_MATRIX);
                 }
-
-                if (mFaceRect != null) {
-                    renderFaceSticker(1f, 1f, false);
-                }
-
                 drawExtra(mEncFrameCount, mEncWidth, mEncHeight);
 
                 mVideoTextureEncoder.frameAvailableSoon();
@@ -2535,10 +2386,6 @@ public class CameraRecorderView extends SurfaceView
             //LogUtil.info(TAG, String.format(
             //        "Java: onPreviewFrame() #%d, data len %d, data %02x %02x",
             //        mPrevFrameCount, data.length, data[0], data[1]));
-
-            if (mProcessor != null && mProcessCallback != null) {
-                mProcessor.process(data, data.length, mProcessCallback, true);
-            }
 
             if (mbTextureEncode) {
 

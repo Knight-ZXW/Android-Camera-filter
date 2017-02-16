@@ -214,6 +214,9 @@ public class CameraController
                 if (focusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
                     mIsSupportAutoFocusContinuousPicture = true;
                     cp.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);// 自动连续对焦
+                } else if (focusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) { //有视频对焦 用视频啊
+                    mIsSupportAutoFocusContinuousVideo = true;
+                    cp.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
                 } else if (focusModes.contains(Camera.Parameters.FOCUS_MODE_AUTO)) {
                     mIsSupportAutoFocus = true;
                     cp.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);// 自动对焦
@@ -484,7 +487,7 @@ public class CameraController
                     parameters.setFlashMode(Camera.Parameters.FLASH_MODE_TORCH);
                 } else {//fuck it i just wanna try it
                     LogUtil.warn(TAG, "camera NOT support FLASH_MODE_TORCH");
-                    LogUtil.warn(TAG,"虽然不支持闪光灯，但是我还是想试一下! 结果呢");
+                    LogUtil.warn(TAG, "虽然不支持闪光灯，但是我还是想试一下! 结果呢");
                     parameters.setFlashMode(Camera.Parameters.FLASH_MODE_TORCH);
                     return;
                 }
@@ -509,6 +512,11 @@ public class CameraController
         return false;
     }
 
+
+    // todo 做一个视频的连续对焦 by zhuoxiuwu
+    public boolean startAutoFoucusForVideo(Camera.AutoFocusCallback autoFocusCallback){
+        return true;
+    }
     public boolean startAutoFocus(Camera.AutoFocusCallback autoFocusCallback) {
         if ((mIsSupportAutoFocus || mIsSupportAutoFocusContinuousPicture) && mCamera != null) {
             try {

@@ -57,12 +57,6 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal" >
-        <TextView
-            android:id="@+id/tv_roomId"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginLeft="10dp"
-            android:text="@string/room_id"/>
         <CheckBox
             android:id="@+id/cb_enable_color_picker"
             android:layout_width="wrap_content"
@@ -84,11 +78,6 @@
             android:layout_width="150dp"
             android:layout_height="wrap_content"
             android:entries="@array/output_type_array"/>
-        <Button
-            android:id="@+id/btn_explaination_url"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/btn_explaination_url"/>
     </LinearLayout>
 
     <TextView

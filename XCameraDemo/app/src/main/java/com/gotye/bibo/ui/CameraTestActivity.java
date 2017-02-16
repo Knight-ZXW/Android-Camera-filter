@@ -59,7 +59,6 @@ import com.gotye.bibo.util.LrcParser2;
 import com.gotye.bibo.util.Song;
 import com.gotye.bibo.util.TimeLrc;
 import com.gotye.bibo.util.Util;
-import com.livebroadcast.ArcSpotlightProcessor;
 
 import java.io.File;
 import java.io.IOException;
@@ -156,8 +155,6 @@ public class CameraTestActivity extends AppCompatActivity
 
     private FilterAdapter mAdapter;
     private boolean mbFilterSelectShowing = false;
-
-    private ArcSpotlightProcessor.ProcessCallback mProcessCallback;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -395,42 +392,6 @@ public class CameraTestActivity extends AppCompatActivity
                 BitmapFactory.decodeResource(getResources(), R.drawable.elephant,
                         options);
         mView.setWatermark(bitmap, 20, 20, 128, 128);
-
-//        if (roomId != null) {
-//            LogUtil.info(TAG, "enable call function. roomId: " + roomId);
-//
-//            // webrtc and play song cannot use simultaneously
-//            this.findViewById(R.id.button_play_song).setEnabled(false);
-//            //myRenderer = new RtcRenderer(this, true);
-//            glview = (GLSurfaceView)this.findViewById(R.id.gl_surface);
-//            //glview.setEGLContextClientVersion(2);
-//            //glview.setRenderer(myRenderer);
-//            //glview.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
-//
-//            mView.setEnableWebrtc(true);
-//        }
-
-        /*new Thread(new Runnable() {
-            @Override
-            public void run() {
-                String[] ns = new String[]{
-                        "dllivepublisher.livevip.com.cn"
-                };
-
-                nsList = new ArrayList<>();
-                for (int i=0;i<ns.length;i++) {
-                    String []ips = Util.nsLookup(ns[i]);
-                    if (ips != null && ips.length > 0) {
-                        Map<String, String> item = new HashMap<>();
-                        item.put("ns", ns[i]);
-                        item.put("ip", ips[0]);
-                        nsList.add(item);
-                        LogUtil.info(TAG, String.format(Locale.US,
-                                "ns_add ip binding : %s -> %s", ns[i], ips[0]));
-                    }
-                }
-            }
-        }).start();*/
     }
 
     @Override
@@ -489,10 +450,6 @@ public class CameraTestActivity extends AppCompatActivity
         mHandler.removeMessages(MainHandler.MSG_UPDATE_INFO);
 
         mView.onPause();
-
-        if (isFinishing()) {
-        }
-
         writeSettings();
     }
 
@@ -700,34 +657,6 @@ public class CameraTestActivity extends AppCompatActivity
                         case 3:
                             mUrl += ".h264";
                             break;
-                        case 4:
-                            mUrl = getResources().getString(R.string.livevip_rtmp_play2);
-                            break;
-                        case 5:
-                            mUrl = getResources().getString(R.string.live_rtmp);
-                            break;
-                        case 6:
-                            mUrl = getResources().getString(R.string.hls_rtmp);
-                            break;
-                        case 7:
-                            mUrl = getResources().getString(R.string.rec_rtmp);
-                            break;
-                        case 9:
-                            mUrl = getResources().getString(R.string.able_rtmp);
-                            break;
-                        case 10:
-                            mUrl = getResources().getString(R.string.live_udp);
-                            break;
-                        case 11:
-                            mUrl = getResources().getString(R.string.live_rtsp);
-                            break;
-                        case 12:
-                            if (mCustomizedOutputPath == null) {
-                                Toast.makeText(CameraTestActivity.this, "自定义输出路径未定义", Toast.LENGTH_SHORT).show();
-                                return;
-                            }
-                            mUrl = mCustomizedOutputPath;
-                            break;
                         default:
                             mUrl += ".mp4";
                             LogUtil.warn(TAG, "Java: invalid mux format: " + mMuxFmt);
@@ -878,7 +807,7 @@ public class CameraTestActivity extends AppCompatActivity
         mbEncodeAudio = Util.readSettingsBoolean(this, "is_encode_audio", true);
         mbUseFdkAACEncode = Util.readSettingsBoolean(this, "use_fdk_aac_encode", false);
         mMuxFmt = Util.readSettingsInt(this, "mux_format", 1);
-        mbTextureEncode = Util.readSettingsBoolean(this, "texture_encode", false);
+        mbTextureEncode = Util.readSettingsBoolean(this, "texture_encode", true);
     }
 
     private void writeSettings() {
@@ -1284,41 +1213,6 @@ public class CameraTestActivity extends AppCompatActivity
         final TextView tv_info = (TextView)view.findViewById(R.id.tv_encode_bps);
         final Spinner spinner = (Spinner)view.findViewById(R.id.spinner_output_type);
         final EditText etFrameRate = (EditText)view.findViewById(R.id.et_framerate);
-        final TextView tvRoomId = (TextView)view.findViewById(R.id.tv_roomId);
-
-        view.findViewById(R.id.btn_explaination_url).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                StringBuffer sb = new StringBuffer();
-                //sb.append("mpegts: " + mSaveVideoFolder + "/out_TIMESTAMP.ts\n");
-                //sb.append("mp4: " + mSaveVideoFolder + "/out_TIMESTAMP.mp4\n");
-                //sb.append("flv: " + mSaveVideoFolder + "/out_TIMESTAMP.flv\n");
-                sb.append("rtmp(livevip)\n");
-                sb.append(getResources().getString(R.string.livevip_rtmp_play2));
-                sb.append("rtmp(live)\n");
-                sb.append(getResources().getString(R.string.live_rtmp));
-                sb.append("rtmp(hls)\n");
-                sb.append(getResources().getString(R.string.hls_rtmp));
-                sb.append("rtmp(rec)\n");
-                sb.append(getResources().getString(R.string.rec_rtmp));
-                sb.append("rtmp(able)\n");
-                sb.append(getResources().getString(R.string.able_rtmp));
-                sb.append("udp(simulcast)\n");
-                sb.append(getResources().getString(R.string.live_udp));
-
-                new AlertDialog.Builder(CameraTestActivity.this)
-                        .setTitle("媒体路径说明")
-                        .setMessage(sb.toString())
-                        .setIcon(android.R.drawable.ic_dialog_info)
-                        .setPositiveButton("确定", new DialogInterface.OnClickListener() {
-
-                            public void onClick(DialogInterface dialog, int which) {
-                                dialog.dismiss();
-                            }
-                        })
-                        .show();
-            }
-        });
 
         // read data
         cbEnableAudio.setChecked(mbEncodeAudio);
