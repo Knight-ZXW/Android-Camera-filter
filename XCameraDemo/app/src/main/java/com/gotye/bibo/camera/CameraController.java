@@ -315,17 +315,43 @@ public class CameraController
                     LogUtil.info(TAG, String.format(Locale.US,
                             "Java: supported preview range %d - %d", r[0], r[1]));
                 }
+                //TAG 在这里设置了 预览的帧数
+//                if (setRange) {
+//                    for (int[] r : range) {
+//                        if (r[0] <= 15000 && r[1] >= 15000) {
+//                            cp.setPreviewFpsRange(15000, 15000);
+//                            LogUtil.info(TAG, "Java: set preview fps range 15");
+//                            break;
+//                        }
+//                    }
+//                }
 
-                if (setRange) {
-                    for (int[] r : range) {
-                        if (r[0] <= 15000 && r[1] >= 15000) {
-                            cp.setPreviewFpsRange(15000, 15000);
-                            LogUtil.info(TAG, "Java: set preview fps range 15");
-                            break;
+                //我重新设置 fps，我想取最大  by zhuoxiuwu
+                //todo 我可以设置一个表示 帧数策略，来让外部选择 by zhuoxiuwu
+                if (setRange){
+                    ArrayList<int[] > maxRange= new ArrayList<>();
+                    for (int[] r:range){
+                        if (maxRange.size() == 0){
+                            maxRange.add(r);
+                         } else {
+                            if (r[1]>maxRange.get(0)[1]){
+                                maxRange.clear();
+                                maxRange.add(r);
+                            } else if (r[1]>maxRange.get(0)[1]){
+                                maxRange.add(r);
+                            }
                         }
                     }
+                    int[] iwannaSetRange ={0,0};
+                    if (maxRange.size() > 1){
+                        for(int[] r : maxRange){
+                            if (r[0]>iwannaSetRange[0]){
+                                iwannaSetRange = r;
+                            }
+                        }
+                    }
+                    cp.setPreviewFpsRange(iwannaSetRange[0],iwannaSetRange[1]);
                 }
-
                 int rotation;
                 if (isFrontCamera()) {
                     rotation = (360 - mOrientation) % 360;
