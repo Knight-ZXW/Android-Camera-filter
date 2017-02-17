@@ -115,7 +115,7 @@ public class CameraRecorderView extends SurfaceView
     private static final boolean ENCODER_SET_MUXER = false;
     private static final boolean FASTPLAY_CONVERT = false;
 
-    private boolean mbTextureEncode = true;
+    private boolean mbTextureEncode = false;
 
     private final Context mContext;
 
@@ -352,7 +352,7 @@ public class CameraRecorderView extends SurfaceView
         mMainHandler.sendMessageDelayed(mMainHandler.obtainMessage(MainHandler.MSG_CHECK_SETUP), 1000);
 
         mbUseFrontCam = Util.readSettingsBoolean(mContext, "use_front_camera", false);
-        mbTextureEncode = Util.readSettingsBoolean(mContext, "texture_encode", true);
+        mbTextureEncode = Util.readSettingsBoolean(mContext, "texture_encode", false);
 
         getHolder().addCallback(this);
 
@@ -2918,6 +2918,7 @@ public class CameraRecorderView extends SurfaceView
         mbSurfaceCreated = true;
 
         if (mbTextureEncode) {
+
             // Set up everything that requires an EGL context.
             //
             // We had to wait until we had a surface because you can't make an EGL context current

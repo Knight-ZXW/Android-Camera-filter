@@ -12,6 +12,19 @@ import com.gotye.bibo.util.LogUtil;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
+/**
+ * Android回声消除
+ *在Android中回声消除可以通过三种方式进行处理：1、通过VOICE_COMMUNICATION模式进行录音，自动实现回声消除；
+ * 2、利用Android自身带的AcousticEchoCanceler进行回声消除处理；3、使用第三方库（Speex、Webrtc）进行回声消除处理。
+ * 使用AudioRecord模式进行录音的时候，需要将AudioManager设置模式为MODE_IN_COMMUNICATION，还需要将麦克风打开。有一点需要特别注意，音频采样率必须设置8000或者16000，通道数必须设为1个。
+ *
+ *
+ *
+ * AudioManager audioManager = (AudioManager)mContext.getSystemService(Context.AUDIO_SERVICE);
+ * audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
+ * audioManager.setSpeakerphoneOn(true);
+ */
+
 public class SysAudioEncoder implements AudioEncoderInterface {
 	private static final String TAG = "SysAudioEncoder";
 	private static final String mediaType = "audio/mp4a-latm";

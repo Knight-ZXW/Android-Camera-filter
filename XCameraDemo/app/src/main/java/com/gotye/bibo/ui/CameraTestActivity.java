@@ -188,6 +188,9 @@ public class CameraTestActivity extends AppCompatActivity
             mCameraSound.load(MediaActionSound.SHUTTER_CLICK);
             mCameraSound.load(MediaActionSound.FOCUS_COMPLETE);
         }
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.JELLY_BEAN_MR1){
+            mbTextureEncode = false;
+        }
 
         mView = (CameraRecorderView)this.findViewById(R.id.cam_view);
         mView.setEncoderListener(mEncoderListener);
@@ -263,7 +266,14 @@ public class CameraTestActivity extends AppCompatActivity
 
                         if (mCameraSound != null)
                             mCameraSound.play(MediaActionSound.SHUTTER_CLICK);
-                        mView.takePicture();
+                        // watermark
+                        final BitmapFactory.Options options = new BitmapFactory.Options();
+                        options.inScaled = false;    // No pre-scaling
+                        final Bitmap bitmap =
+                                BitmapFactory.decodeResource(getResources(), R.drawable.elephant,
+                                        options);
+                        mView.setWatermark(bitmap, 20, 20, 128, 128);
+//                        mView.takePicture();
                         return true;
                     }
 
@@ -385,13 +395,7 @@ public class CameraTestActivity extends AppCompatActivity
 
         mView.setPictureParams(mRootPath + "/pic", this);
 
-        // watermark
-        final BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inScaled = false;    // No pre-scaling
-        final Bitmap bitmap =
-                BitmapFactory.decodeResource(getResources(), R.drawable.elephant,
-                        options);
-        mView.setWatermark(bitmap, 20, 20, 128, 128);
+
     }
 
     @Override
@@ -804,7 +808,7 @@ public class CameraTestActivity extends AppCompatActivity
         mbEncodeAudio = Util.readSettingsBoolean(this, "is_encode_audio", true);
         mbUseFdkAACEncode = Util.readSettingsBoolean(this, "use_fdk_aac_encode", false);
         mMuxFmt = Util.readSettingsInt(this, "mux_format", 1);
-        mbTextureEncode = Util.readSettingsBoolean(this, "texture_encode", true);
+        mbTextureEncode = Util.readSettingsBoolean(this, "texture_encode", false);
     }
 
     private void writeSettings() {
@@ -1038,7 +1042,7 @@ public class CameraTestActivity extends AppCompatActivity
     private void popSeletSongDlg() {
         final List<Song> songList = AudioUtil.getAllSongs(this);
         if (songList == null || songList.size() == 0) {
-            Toast.makeText(this, "获取歌曲媒体文件失败", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "获取歌曲媒体文件失败 或没有歌曲文件", Toast.LENGTH_SHORT).show();
             return;
         }
 

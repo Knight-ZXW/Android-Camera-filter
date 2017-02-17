@@ -1,40 +1,136 @@
 apply plugin: 'com.android.application'
-
+import org.apache.tools.ant.taskdefs.condition.Os
 android {
-    compileSdkVersion 25
+    compileSdkVersion 23
     buildToolsVersion "25.0.2"
     defaultConfig {
         applicationId "com.zhuoxiuwu.xcameardemo"
-        minSdkVersion 16
+        minSdkVersion 12 // MediaCodec createInputSurface() need platform-18
         targetSdkVersion 20
-        versionCode 1
-        versionName "1.0"
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-    }
-    buildTypes {
-        release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        if (project.hasProperty('VERSION_CODE_PARA')) {
+            versionCode Integer.parseInt(VERSION_CODE_PARA)
         }
-        //todo ndk 记得在这里加配置
-        sourceSets {
-            main {
-                jni.srcDirs = [] //disable automatic ndk-build call
-                jniLibs.srcDirs = ['src/main/libs'] // jniLibs
+        else {
+            versionCode 114
+        }
+        if (project.hasProperty('VERSION_NAME_PARA')) {
+            versionName VERSION_NAME_PARA
+        }
+        else {
+            versionName "1.14"
+        }
+    }
+    applicationVariants.all { variant ->
+        variant.outputs.each { output ->
+            def outputFile = output.outputFile
+            if (outputFile != null && !outputFile.name.contains("debug") &&
+                    outputFile.name.endsWith('.apk')) {
+                def fileName = outputFile.name;
+                fileName = fileName.replace("app-", "BiBO-")
+                if (android.defaultConfig.versionName != null) {
+                    fileName = fileName.replace(".apk", "-${android.defaultConfig.versionName}.apk")
+                }
+                if (project.hasProperty('OUT_PUT_APK_SUFFIX_PARA')) {
+                    fileName = fileName.replace(".apk", "-${OUT_PUT_APK_SUFFIX_PARA}.apk")
+                }
+                def today = new Date().format('yyMMddHHmm');
+                fileName = fileName.replace(".apk", "-${today}.apk")
+                if (project.hasProperty('OUT_PUT_DIR_PARA')) {
+                    File output_dir1 = file("${OUT_PUT_DIR_PARA}");
+                    output.outputFile = new File(output_dir1, fileName)
+                    println "output apk file path: " + output.outputFile
+                }
+                else {
+                    output.outputFile = new File(outputFile.parent, fileName)
+                    println "output apk file path: " + output.outputFile
+                }
             }
         }
     }
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            ndk {
+                abiFilters "armeabi", "armeabi-v7a"
+            }
+        }
+        release_x86 {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            ndk {
+                abiFilters "x86"
+            }
+        }
+        release_arm64 {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            ndk {
+                abiFilters "arm64-v8a"
+            }
+        }
+        debug {
+            minifyEnabled false
+            ndk {
+                abiFilters "armeabi", "armeabi-v7a"
+            }
+        }
+    }
+    sourceSets {
+        main {
+            jni.srcDirs = [] //disable automatic ndk-build call
+            jniLibs.srcDirs = ['src/main/libs'] // jniLibs
+        }
+    }
+    packagingOptions {
+        exclude 'META-INF/LICENSE.txt'
+        exclude 'META-INF/NOTICE.txt'
+    }
+
+    // call regular ndk-build(.cmd) script from app directory
+    task ndkBuild(type: Exec) {
+        if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+            commandLine "$android.ndkDirectory/ndk-build.cmd", '-j4', '-C', file('src/main').absolutePath
+        }
+        else {
+            commandLine "$android.ndkDirectory/ndk-build", '-j4', '-C', file('src/main').absolutePath
+        }
+
+    }
+    tasks.withType(JavaCompile) {
+        compileTask -> compileTask.dependsOn ndkBuild
+    }
+    task copyNativeSymbols(type: Copy) {
+        from fileTree(dir: 'src/main/obj/local', include: '**/*.so')
+        into  'build/dist/symbols'
+        exclude '**/objs'
+        includeEmptyDirs = false
+    }
+    task cleanNativeSymbols(type: Delete) {
+        delete '${buildDir}/dist/symbols'
+    }
+    task copyLib(type: Copy) {
+        from('build/outputs/aar')
+        into('build/dist/aar')
+        include('*.aar')
+    }
+    tasks.withType(JavaCompile) {
+        compileTask -> compileTask.dependsOn copyNativeSymbols
+    }
+
+    clean.dependsOn 'cleanNativeSymbols'
 }
+
 repositories {
     flatDir {
         dirs 'libs'
     }
 }
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
-    androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
-        exclude group: 'com.android.support', module: 'support-annotations'
-    })
-    compile 'com.android.support:appcompat-v7:25.1.1'
+    compile fileTree(include: ['*.jar'], dir: 'libs')
     testCompile 'junit:junit:4.12'
+    compile 'com.android.support:appcompat-v7:23.1.1'
 }

@@ -1,0 +1,4 @@
+BuildDate 08/05/2016, Build 19, CopyRight Copyright @ 2016 ArcSoft, Inc. All Rights Reserved.For KUAISHOU, Version ArcSoft_Spotlight_1.1.12021.19, Codebase 1, Major 1, Minor 12021
+
+
+aaaa version: BuildDate 08/02/2016, Build 13, CopyRight Copyright @ 2016 ArcSoft, Inc. All Rights Reserved.For IN, Version ArcSoft_Spotlight_2.0.12021.13, Codebase 2, Major 0, Minor 12021

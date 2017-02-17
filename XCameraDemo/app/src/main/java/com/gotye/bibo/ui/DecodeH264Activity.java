@@ -612,7 +612,7 @@ public class DecodeH264Activity extends AppCompatActivity
 		LogUtil.info(TAG, "dec_thread started");
 		
 		DecodeMode mode = DecodeMode.SYSTEM;
-		if (!mDecodeSW)
+		if (!mDecodeSW) //硬解 使用 ffmpeg
 			mode = DecodeMode.FFMPEG;
 
 		LogUtil.info(TAG, String.format("create %s decoder", mode == DecodeMode.SYSTEM ? "HW" : "SW"));

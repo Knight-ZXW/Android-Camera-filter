@@ -105,12 +105,19 @@ public class TextureEncoder {
         // we can use for input and wrap it with a class that handles the EGL work.
         try {
             mEncoder = MediaCodec.createEncoderByType(MIME_TYPE);
+            mEncoder.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+
         } catch (IOException e) {
             e.printStackTrace();
-            throw new RuntimeException("failed to create MediaCodec");
+            if (mEncoder != null){ //虽然异常了 还是释放下资源
+                mEncoder.stop();
+                mEncoder.release();
+                mEncoder = null;
+            }
         }
-        mEncoder.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
         mInputSurface = mEncoder.createInputSurface();
+
+        //todo 再抽取一个 start 方法比较合适
         mEncoder.start();
         if (supportSetBitrate())
             adjustBitrate(bitRate);
@@ -280,7 +287,7 @@ public class TextureEncoder {
             final int TIMEOUT_USEC = 5000;     // no timeout -- check for buffers, bail if none
 
             ByteBuffer[] encoderOutputBuffers = mEncoder.getOutputBuffers();
-            while (true) {
+            while (true) {//todo 这边异常的情况还是有可能的，不要为true
                 int encoderStatus = mEncoder.dequeueOutputBuffer(mBufferInfo, TIMEOUT_USEC);
                 if (encoderStatus == MediaCodec.INFO_TRY_AGAIN_LATER) {
                     // no output available yet

@@ -152,10 +152,16 @@ public class CameraController
             try {
                 if (Camera.getNumberOfCameras() > 0) {
                     mCamera = Camera.open(mCameraIndex);
+                    if (mCamera == null){
+                        mCamera = Camera.open();
+                    }
                 } else {
                     mCamera = Camera.open();
                 }
-
+                if (mCamera == null){
+                    LogUtil.error(TAG,"无法打开照相机");
+                    return false;
+                }
                 Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
                 Camera.getCameraInfo(mCameraIndex, cameraInfo);
 
