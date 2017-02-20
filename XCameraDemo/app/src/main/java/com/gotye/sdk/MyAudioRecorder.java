@@ -61,13 +61,13 @@ public class MyAudioRecorder {
 	private boolean mIsRecording = false;
 	private boolean mIsStopping = false;
 	private Thread mThr;
-	private OnAudioRecData mOnData;
+	private OnAudioRecListener mOnData;
     private int mOneSecDataLen;
 
     private long mTotalDataLen;
 	private long mStartMsec;
 
-	public void setOnData(OnAudioRecData onData) {
+	public void setOnData(OnAudioRecListener onData) {
 		mOnData = onData;
 	}
 
@@ -218,7 +218,7 @@ public class MyAudioRecorder {
     	
     };
     
-    public interface OnAudioRecData {
+    public interface OnAudioRecListener {
     	void OnPCMData(byte[] data, int start, int byteCount, long timestamp);
 	}
     

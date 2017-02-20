@@ -85,7 +85,7 @@ public class CameraRecorderView extends SurfaceView
         implements SurfaceHolder.Callback, CommonHandlerListener,
         EncoderInterface.OnDataListener,
         AudioEncoderInterface.OnAudioDataListener,
-        MyAudioRecorder.OnAudioRecData,
+        MyAudioRecorder.OnAudioRecListener,
         SurfaceTexture.OnFrameAvailableListener,
         EasyAudioPlayer.OnPlayerCallback {
 

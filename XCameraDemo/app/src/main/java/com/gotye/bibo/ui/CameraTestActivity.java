@@ -134,8 +134,6 @@ public class CameraTestActivity extends AppCompatActivity
 
     private boolean activityRunning;
 
-
-
     private List<Map<String, String>> nsList;
 
     // play song
@@ -394,8 +392,6 @@ public class CameraTestActivity extends AppCompatActivity
         }
 
         mView.setPictureParams(mRootPath + "/pic", this);
-
-
     }
 
     @Override

@@ -6,7 +6,7 @@ android {
     defaultConfig {
         applicationId "com.zhuoxiuwu.xcameardemo"
         minSdkVersion 12 // MediaCodec createInputSurface() need platform-18
-        targetSdkVersion 20
+        targetSdkVersion 22
         if (project.hasProperty('VERSION_CODE_PARA')) {
             versionCode Integer.parseInt(VERSION_CODE_PARA)
         }
