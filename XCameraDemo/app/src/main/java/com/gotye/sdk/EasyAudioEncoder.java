@@ -12,8 +12,6 @@ public class EasyAudioEncoder implements AudioEncoderInterface {
     private static final int INVALID_HANDLE = -1;
     private static final int BUF_SIZE       = 48 * 2 * 50; // 48 khz, 2 channel for 50 msec
 
-	private long mHandle = INVALID_HANDLE;
-	private PPAudioEncoder mEncoder;
 	private OnAudioDataListener mOnDataListener;
     private byte[] mPcmData = null;
     private int mPcmDataOffset = 0;
@@ -22,17 +20,15 @@ public class EasyAudioEncoder implements AudioEncoderInterface {
     private int mOneSecDataSize;
 	private long mTotalDataSize;
 
-    private long mMuxerHandle = INVALID_HANDLE;
 
-	public EasyAudioEncoder(Context ctx, PPAudioEncoder enc) {
-		mEncoder = enc;
+	public EasyAudioEncoder() {
 	}
 	
 	@Override
-	public boolean open(int sample_rate, int channels, int bitrate, boolean bAddAdtsHeader) {
+	public boolean open(int sample_rate, int channels, int bitrate) {
         mPcmData = new byte[BUF_SIZE];
 		mEncodedData = new byte[BUF_SIZE];
-		boolean ret = EasyAudioEncoderOpen(sample_rate, channels, bitrate, bAddAdtsHeader);
+		boolean ret = EasyAudioEncoderOpen(sample_rate, channels, bitrate,false);
         mBufSize = EasyAudioEncoderGetBufSize();
         mOneSecDataSize = sample_rate * channels * 2;
 		mTotalDataSize = 0L;
@@ -108,12 +104,7 @@ public class EasyAudioEncoder implements AudioEncoderInterface {
 		return true;*/
 	}
 
-	@Override
-	public void setMuxer(long muxer) {
-        LogUtil.info(TAG, "Java: setMuxer " + muxer);
-        mMuxerHandle = muxer;
-	}
-	
+
 	@Override
 	public void close() {
 		EasyAudioEncoderClose();

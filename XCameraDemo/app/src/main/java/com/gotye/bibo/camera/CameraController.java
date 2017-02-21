@@ -13,7 +13,6 @@ import android.os.Looper;
 import android.os.Message;
 import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.View;
@@ -43,14 +42,12 @@ public class CameraController
     private static volatile CameraController sInstance;
 
     public final static float sCameraRatio = 4f / 3f;
-    private final CameraControllerHandler mHandler;
 
     private Camera mCamera = null;
     public int mCameraIndex = Camera.CameraInfo.CAMERA_FACING_BACK; //前置 或者后置摄像头
-    public boolean mIsSupportFontFacingCamera = false; //todo 删除这个变量
     public boolean mCameraMirrored = false; //表示是否是前置摄像，即可以看点自己
     public int mOrientation = 0;
-    public Camera.Size mCameraPictureSize;
+    public Camera.Size mCameraPictureSize;// 拍照的尺寸
 
     private final Object mLock = new Object();
 
@@ -62,8 +59,7 @@ public class CameraController
 
     private int DEFAULT_PICTURE_WIDTH = 1920;
     private int DEFAULT_PICTURE_HEIGHT = 1080;
-    private CameraPictureSizeComparator mCameraPictureSizeComparator =
-            new CameraPictureSizeComparator();
+    private final CameraControllerHandler mHandler;
 
     //////////
     public static CameraController getInstance() {
@@ -82,49 +78,6 @@ public class CameraController
     }
 
     /**
-     * 检查是否支持前置摄像头
-     *
-     * @param frontPriority
-     * @return
-     */
-    public boolean checkSupportFrontFacingCamera(boolean frontPriority) {
-        try {
-            Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
-            int cameraCount = Camera.getNumberOfCameras();
-            for (int i = 0; i < cameraCount; i++) {
-                Camera.getCameraInfo(i, cameraInfo);
-                if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-                    if (frontPriority) { // 显示前置摄像头
-                        setCameraIndex(i);
-                    }
-                    mIsSupportFontFacingCamera = true;
-                    return true;
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    /**
-     * 是否支持脸部检测
-     *
-     * @return
-     */
-    public boolean supportFaceDetection() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.ICE_CREAM_SANDWICH)
-            return false;
-        // check if face detection is supported or not
-        // using Camera.Parameters
-        if (mCamera.getParameters().getMaxNumDetectedFaces() <= 0) {
-            LogUtil.warn(TAG, "Face Detection not supported");
-            return false;
-        }
-        return true;
-    }
-
-    /**
      * 摄像头 方向
      *
      * @return
@@ -137,17 +90,13 @@ public class CameraController
      * 配置Camera
      *
      * @param context
-     * @param desiredPictureWidth  希望展示的宽度
-     * @param desiredPictureHeight 希望展示的高度
      * @param orientation          角度
      * @return
      */
-    public boolean setupCamera(Context context,
-                               int desiredPictureWidth, int desiredPictureHeight, int orientation) {
+    public boolean openCamera(Context context,int orientation) {
         if (mCamera != null) {
             release();
         }
-
         synchronized (mLock) {
             try {
                 if (Camera.getNumberOfCameras() > 0) {
@@ -625,9 +574,8 @@ public class CameraController
     private void findCameraSupportValue(int desiredWidth, int desiredHeight) {
         Camera.Parameters cp = getCameraParameters();
         List<Camera.Size> cs = cp.getSupportedPictureSizes();
-        Log.i(TAG, "该设备支持的Size 有" + cs);
         if (cs != null && !cs.isEmpty()) {
-            Collections.sort(cs, mCameraPictureSizeComparator);
+            Collections.sort(cs, new CameraPictureSizeComparator());
             for (Camera.Size size : cs) {
                 if (size.width <= desiredWidth && size.height <= desiredHeight) {
                     mCameraPictureSize = size;
@@ -636,10 +584,6 @@ public class CameraController
                             size.width, size.height));
                     break;
                 }
-                /*float ratio = (float) size.width / size.height;
-                if (ratio == sCameraRatio) {
-                    mCameraPictureSize = size;
-                }*/
             }
         }
     }
@@ -720,9 +664,6 @@ public class CameraController
         return mCamera;
     }
 
-    public int getCameraIndex() {
-        return mCameraIndex;
-    }
 
     public boolean isFrontCamera() {
         return mCameraMirrored;
@@ -741,10 +682,6 @@ public class CameraController
      */
     public void setCameraIndex(int cameraIndex) {
         this.mCameraIndex = cameraIndex;
-    }
-
-    public boolean isSupportFontFacingCamera() {
-        return mIsSupportFontFacingCamera;
     }
 
     private static final int RESET_TOUCH_FOCUS = 301;

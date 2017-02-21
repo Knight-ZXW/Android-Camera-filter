@@ -1,7 +1,7 @@
 package com.gotye.sdk;
 
 public interface AudioEncoderInterface {
-	public abstract boolean open(int sample_rate, int channels, int bitrate, boolean bAddAdtsHeader);
+	public abstract boolean open(int sample_rate, int channels, int bitrate);
 	
 	public abstract void setOnDataListener(OnAudioDataListener listener);
 	
@@ -9,8 +9,7 @@ public interface AudioEncoderInterface {
 	
 	public abstract boolean addAudioData(byte[] data, int start, int byteCount, long timestamp);
 
-	public abstract void setMuxer(long muxer);
-	
+
 	public abstract void close();
 
 	public interface OnAudioDataListener {

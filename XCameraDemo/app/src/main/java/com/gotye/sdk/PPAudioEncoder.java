@@ -8,7 +8,6 @@ import com.gotye.bibo.util.LogUtil;
 public class PPAudioEncoder implements AudioEncoderInterface {
 	private final static String TAG = "PPAudioEncoder";
 
-	private static Context mContext = null;
 	private AudioEncoderInterface mEncoder = null;
 	private EncodeMode mEncodeMode = EncodeMode.SYSTEM;
 
@@ -18,22 +17,21 @@ public class PPAudioEncoder implements AudioEncoderInterface {
 			@Override
             public AudioEncoderInterface newInstance(PPAudioEncoder enc) {
 				LogUtil.info(TAG, "audio_encoder_select fdk-aac");
-                return new EasyAudioEncoder(mContext, enc);
+                return new EasyAudioEncoder();
             }
 		};
 
 		public AudioEncoderInterface newInstance(PPAudioEncoder enc) {
         	LogUtil.info(TAG, "audio_encoder_select system");
-            return new SysAudioEncoder(mContext, enc);
+            return new SysAudioEncoder();
         }
 	}
 
 	public PPAudioEncoder(Context ctx) {
-		this(ctx, EncodeMode.SYSTEM);
+		this(EncodeMode.SYSTEM);
 	}
 
-	public PPAudioEncoder(Context ctx, EncodeMode mode) {
-		mContext = ctx;
+	public PPAudioEncoder(EncodeMode mode) {
 		mEncodeMode = mode;
 		mEncoder = mEncodeMode.newInstance(this);
 	}
@@ -43,13 +41,10 @@ public class PPAudioEncoder implements AudioEncoderInterface {
 	}
 	
 	@Override
-	public boolean open(int sample_rate, int channels, int bitrate, boolean bAddAdtsHeader) {
+	public boolean open(int sample_rate, int channels, int bitrate) {
 		// TODO Auto-generated method stub
 		if (mEncoder != null) {
-			LogUtil.info(TAG, String.format("Java: open audio encoder: sample_rate %d, channels %d, " +
-							"bitrate %d, add adts header %s",
-					sample_rate, channels, bitrate, bAddAdtsHeader ? "ON" : "OFF"));
-            return mEncoder.open(sample_rate, channels, bitrate, bAddAdtsHeader);
+            return mEncoder.open(sample_rate, channels, bitrate);
         }
 		
 		return false;
@@ -77,12 +72,6 @@ public class PPAudioEncoder implements AudioEncoderInterface {
 		
 		return false;
 	}
-
-	@Override
-	public void setMuxer(long muxer) {
-        if (mEncoder != null)
-            mEncoder.setMuxer(muxer);
-    }
 
     @Override
 	public void close() {

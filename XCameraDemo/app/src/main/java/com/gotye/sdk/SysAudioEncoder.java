@@ -1,6 +1,5 @@
 package com.gotye.sdk;
 
-import android.content.Context;
 import android.media.AudioFormat;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
@@ -33,9 +32,6 @@ public class SysAudioEncoder implements AudioEncoderInterface {
 	
 	private static final int TIMEOUT_USEC = 5000;
 
-    private Context mContext;
-    private PPAudioEncoder mEnc;
-
 	private MediaCodec mEncoder;
 	private byte[] mInfo;
 	private int mSampleRate;
@@ -43,22 +39,18 @@ public class SysAudioEncoder implements AudioEncoderInterface {
 	private int mBitrate;
     private long lastAudioPresentationTime = -1;
 	
-	private boolean mAddAdtsHeader = false;
 	private OnAudioDataListener mOnDataListener;
 
-    public SysAudioEncoder(Context context, PPAudioEncoder enc) {
-        mContext = context;
-        mEnc = enc;
+    public SysAudioEncoder() {
+
     }
 
     @Override
-	public boolean open(int sample_rate, int channels, int bitrate, boolean bAddAdtsHeader) {
+	public boolean open(int sample_rate, int channels, int bitrate) {
 		// TODO Auto-generated method stub
 		mSampleRate = sample_rate;
 		mChannels = channels;
 		mBitrate = bitrate;
-		mAddAdtsHeader = bAddAdtsHeader;
-
 		try {
 			mEncoder = MediaCodec.createEncoderByType(mediaType);
 		} catch (IOException e) {
@@ -154,24 +146,11 @@ public class SysAudioEncoder implements AudioEncoderInterface {
 
                     byte[] outData = null;
 
-                    if (mAddAdtsHeader) {
-                        int outBitsSize   = bufferInfo.size;
-                        int outPacketSize = outBitsSize + 7;    // 7 is ADTS size
-
-                        outData = new byte[outPacketSize];
-                        addADTStoPacket(outData, outPacketSize);
-
-                        outputBuffer.position(bufferInfo.offset);
-                        outputBuffer.limit(bufferInfo.offset + outBitsSize);
-                        outputBuffer.get(outData, 7, outBitsSize);
-                    }
-                    else {
                         outData = new byte[bufferInfo.size];
                         // adjust the ByteBuffer values to match BufferInfo (not needed?)
                         outputBuffer.position(bufferInfo.offset);
                         outputBuffer.limit(bufferInfo.offset + bufferInfo.size);
                         outputBuffer.get(outData);
-                    }
 
                     if (Constants.VERBOSE) {
                         LogUtil.debug(TAG,
@@ -200,11 +179,6 @@ public class SysAudioEncoder implements AudioEncoderInterface {
 	}
 
     @Override
-    public void setMuxer(long muxer) {
-
-    }
-
-    @Override
 	public synchronized void close() {
 		// TODO Auto-generated method stub
 		try {
@@ -215,126 +189,5 @@ public class SysAudioEncoder implements AudioEncoderInterface {
 	        e.printStackTrace();
 	    }
 	}
-	
-	/**
-	  * Add ADTS header at the beginning of each and every AAC packet.
-	  * This is needed as MediaCodec encoder generates a packet of raw
-	  * AAC data.
-	  *
-	  * Note the packetLen must count in the ADTS header itself.
-	  **/
-	private void addADTStoPacket(byte[] packet, int packetLen) {
-		int profile = 2; // AAC LC
-		// 39=MediaCodecInfo.CodecProfileLevel.AACObjectELD;
-		
-		/*		
-		0x0 96000
-		0x1 88200
-		0x2 64000
-		0x3 48000
-		0x4 44100
-		0x5 32000
-		0x6 24000
-		0x7 22050
-		0x8 16000
-		0x9 2000
-		0xa 11025
-		0xb 8000
-		0xc reserved*/
-		int freqIdx; // 44.1KHz mSampleRate
-		if (mSampleRate == 48000)
-			freqIdx = 0x3;
-		else if (mSampleRate == 44100)
-			freqIdx = 0x4;
-		else if (mSampleRate == 16000)
-			freqIdx = 0x8;
-		else if (mSampleRate == 8000)
-			freqIdx = 0xb;
-		else {
-			LogUtil.error(TAG, "invalid freqIdx, mSampleRate " + mSampleRate);
-			freqIdx = 0x4;
-		}
-		
-		int chanCfg = mChannels; // CPE
-		
-		/*adts_fixed_header() {
-			syncword; 12 bslbf 
-			ID; 1 bslbf 0-mpeg2, 1-mpeg4
-			layer; 2 uimsbf  set 00
-			protection_absent; 1 bslbf set 0
-			profile; 2 uimsbf  
-			sampling_frequency_index; 4 uimsbf 
-			private_bit; 1 bslbf  
-			channel_configuration; 3 uimsbf 
-			original/copy; 1 bslbf 
-			home; 1 bslbf 
-		}
-		adts_variable_header() { 
-			 copyright_identification_bit; 1
-			 bslbf copyright_identification_start; 1 bslbf 
-			 frame_length; 13 bslbf 
-			 adts_buffer_fullness; 11 bslbf  
-			 number_of_raw_data_blocks_in_frame; 2 uimsfb
-		}*/
-		
-		// fill in ADTS data
-		packet[0] = (byte) 0xFF;
-		packet[1] = (byte) 0xF9;
-		packet[2] = (byte) (((profile - 1) << 6) + (freqIdx << 2) + (chanCfg >> 2));
-		packet[3] = (byte) (((chanCfg & 3) << 6) + (packetLen >> 11));
-		packet[4] = (byte) ((packetLen & 0x7FF) >> 3);
-		packet[5] = (byte) (((packetLen & 7) << 5) + 0x1F);
-		packet[6] = (byte) 0xFC;
-	}
 
-	private byte[] getWaveFileHeader(long totalAudioLen,
-									 long totalDataLen, long longSampleRate, int channels, long byteRate) {
-		byte[] header = new byte[44];
-		header[0] = 'R'; // RIFF/WAVE header
-		header[1] = 'I';
-		header[2] = 'F';
-		header[3] = 'F';
-		header[4] = (byte) (totalDataLen & 0xff);
-		header[5] = (byte) ((totalDataLen >> 8) & 0xff);
-		header[6] = (byte) ((totalDataLen >> 16) & 0xff);
-		header[7] = (byte) ((totalDataLen >> 24) & 0xff);
-		header[8] = 'W';
-		header[9] = 'A';
-		header[10] = 'V';
-		header[11] = 'E';
-		header[12] = 'f'; // 'fmt ' chunk
-		header[13] = 'm';
-		header[14] = 't';
-		header[15] = ' ';
-		header[16] = 16; // 4 bytes: size of 'fmt ' chunk
-		header[17] = 0;
-		header[18] = 0;
-		header[19] = 0;
-		header[20] = 1; // format = 1
-		header[21] = 0;
-		header[22] = (byte) channels;
-		header[23] = 0;
-		header[24] = (byte) (longSampleRate & 0xff);
-		header[25] = (byte) ((longSampleRate >> 8) & 0xff);
-		header[26] = (byte) ((longSampleRate >> 16) & 0xff);
-		header[27] = (byte) ((longSampleRate >> 24) & 0xff);
-		header[28] = (byte) (byteRate & 0xff);
-		header[29] = (byte) ((byteRate >> 8) & 0xff);
-		header[30] = (byte) ((byteRate >> 16) & 0xff);
-		header[31] = (byte) ((byteRate >> 24) & 0xff);
-		header[32] = (byte) (2 * 16 / 8); // block align
-		header[33] = 0;
-		header[34] = 16; // bits per sample
-		header[35] = 0;
-		header[36] = 'd';
-		header[37] = 'a';
-		header[38] = 't';
-		header[39] = 'a';
-		header[40] = (byte) (totalAudioLen & 0xff);
-		header[41] = (byte) ((totalAudioLen >> 8) & 0xff);
-		header[42] = (byte) ((totalAudioLen >> 16) & 0xff);
-		header[43] = (byte) ((totalAudioLen >> 24) & 0xff);
-
-		return header;
-	}
 }

@@ -197,8 +197,7 @@ public class FilterManager {
                     return new CameraFilterChromaKeyBlend(context, 0f, 1f, 0f, R.drawable.bg1, params[0], params[1]);
                 else
                     return new CameraFilterChromaKeyBlend(context, 0f, 1f, 0f, R.drawable.bg1);
-            case FaceUnity:
-                return new ImageFilter(context);
+
         }
     }
 
@@ -420,8 +419,7 @@ public class FilterManager {
         AsciiArt,
         AsciiArt2,
         ChromaKey,
-        ChromaKeyBlend,
-        FaceUnity;
+        ChromaKeyBlend;
 
         private FilterType() {
         }
@@ -459,8 +457,7 @@ public class FilterManager {
                     this.name().equals("BritneyCartoon") ||
                     this.name().contains("Distortion") ||
                     this.name().contains("AsciiArt") ||
-                    this.name().contains("ChromaKey") ||
-                    this.name().equals("FaceUnity")) {
+                    this.name().contains("ChromaKey")) {
                 ret = true;
             }
 
