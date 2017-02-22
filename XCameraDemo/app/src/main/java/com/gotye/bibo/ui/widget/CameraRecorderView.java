@@ -120,9 +120,11 @@ public class CameraRecorderView extends SurfaceView
     private final static int AUDIO_CHANNELS = 1;
     private final static int AUDIO_BITRATE = 64000;
     private final static int AUDIO_WEBRTC_BUF_SIZE = AUDIO_WEBRTC_SAMPLE_RATE * 2; // 1 sec
-    private final static int AUDIO_PLAYER_BUF_SIZE = AUDIO_SAMPLE_RATE * 2 * 5; // 5 sec
+    private final static int AUDIO_PLAYER_BUF_SIZE = AUDIO_SAMPLE_RATE * 2 * 5; // 5 sec 作为一个缓冲
 
+    //录制的延迟
     private final static int RECORD_LATENCY_MSEC = 500;
+    //mix 的阈值
     private final static int MIX_THRESHOLD_MSEC = 100;
 
     private CameraHandler mCameraHandler;
@@ -220,10 +222,9 @@ public class CameraRecorderView extends SurfaceView
     private TakePictureCallback mTakePictureCallback;
 
     //    private boolean mbPeerConnected = false; // pc connected, video and audio can transfer
-    private byte[] mAudioBuf = null;
-    private byte[] mAudioTrackBuf = null;
-    private int mAudioTrackBufRead;
-    private int mAudioTrackBufWrite;
+    private byte[] mAudioTrackBuf = null; //audio track 字节
+    private int mAudioTrackBufRead; //已经读的
+    private int mAudioTrackBufWrite; //写入的
 
     // watermark
     private Bitmap mWatermarkBitmap;
@@ -240,7 +241,7 @@ public class CameraRecorderView extends SurfaceView
     // play song
     private EasyAudioPlayer mAudioPlayer;
     private boolean mbPlayingSong = false;
-    private int mPlayerBufTimestamp = 0;
+    private int mPlayerBufTimestamp = 0; //音频的播放当前time
     private int mPlayerTimeOffset = -1;
     private float mMixVolume = 1.0f;
 
@@ -923,7 +924,7 @@ public class CameraRecorderView extends SurfaceView
         return mPreviewHeight;
     }
 
-    public void setExtureEncodeMode(boolean isTextureEncode) {
+    public void setTextureEncodeMode(boolean isTextureEncode) {
         if (isTextureEncode == mbTextureEncode)
             return;
 
@@ -945,7 +946,7 @@ public class CameraRecorderView extends SurfaceView
         if (mAudioPlayer == null)
             mAudioPlayer = new EasyAudioPlayer();
 
-        mAudioPlayer.setPCMCallback(this);
+        mAudioPlayer.setPCMCallback(this);//设置pcm数据的回调
         boolean ret = mAudioPlayer.open(url, AUDIO_CHANNELS, 0, AUDIO_SAMPLE_RATE);
         if (!ret) {
             LogUtil.error(TAG, "failed to open music file: " + url);
@@ -1230,14 +1231,6 @@ public class CameraRecorderView extends SurfaceView
 
         mEncCfg = config;
 
-        if (config.mUrl.startsWith("rtmp://")) {
-            mProgDlg.setTitle("视频录制");
-            mProgDlg.setMessage("打开中...");
-            mProgDlg.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-            mProgDlg.setCancelable(true);
-            mProgDlg.show();
-        }
-
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -1508,14 +1501,12 @@ public class CameraRecorderView extends SurfaceView
                 if (mEglCore != null) {
                     break;
                 }
-
                 try {
                     Thread.sleep(500);
                     LogUtil.info(TAG, "mEglCore is null, waiting...");
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-
                 retry--;
             }
 
@@ -1587,17 +1578,14 @@ public class CameraRecorderView extends SurfaceView
     }
 
     private boolean initAudioRecorder() {
-        if (mAudioBuf == null)
-            mAudioBuf = new byte[AUDIO_WEBRTC_BUF_SIZE];
-
-
         if (mAudioRec == null) {
             mAudioRec = new MyAudioRecorder();
             mAudioRec.setOnData(this);
         }
 
+        //记得改回麦克风
         int sample_rate = AUDIO_SAMPLE_RATE;
-        int source = MyAudioRecorder.REC_SOURCE_MIC;
+        int source = MyAudioRecorder.REC_SOURCE_VOICE_COMMUNICATION;
 
         if (!mAudioRec.open(source, sample_rate, AUDIO_CHANNELS, 0/*format*/)) {
             LogUtil.error(TAG, "failed to open audio recorder");
@@ -2268,10 +2256,17 @@ public class CameraRecorderView extends SurfaceView
     //private FileOutputStream fos_wav;
 
     // audio player interface
+
+    /**
+     *
+     * @param buf 数据
+     * @param size buf 这个byte数组的大小
+     * @param timestamp 从0开始 每次递增26
+     */
     @Override
     public void onPlayerPCM(byte[] buf, int size, int timestamp/*msec*/) {
-        //LogUtil.info(TAG, String.format(Locale.US,
-        //        "audioplayer: onPlayerPCM() %d %d", size, timestamp));
+        LogUtil.info(TAG, String.format(Locale.US,
+                "audioplayer: onPlayerPCM() %d %d", size, timestamp));
 
         if (!mbRecording || mAudioTrackBuf == null)
             return;
@@ -2283,9 +2278,10 @@ public class CameraRecorderView extends SurfaceView
                 mAudioTrackBufWrite = mAudioTrackBufRead;
                 LogUtil.warn(TAG, "audioplayer onPlayerPCM data overflow, do flush");
             }
-
+            //将buf 中的数据  拷贝添加到 mAudioTrackBuf
             System.arraycopy(buf, 0, mAudioTrackBuf, mAudioTrackBufWrite, size);
             mAudioTrackBufWrite += size;
+            LogUtil.debug("zxw","mAudioTrackBuf 的大小是"+mAudioTrackBuf.length + "mAudioTrackBufWrite的大小是 "+mAudioTrackBufWrite);
             mPlayerBufTimestamp = timestamp;
         } finally {
             mAudioLock.unlock();
@@ -2314,17 +2310,17 @@ public class CameraRecorderView extends SurfaceView
     // audio recorder interface
 
     /**
-     * 获取的原声 音频数据
+     * 获取的手机硬件的
      *
      * @param data      音频data
      * @param start     该段数据对应的 时间
      * @param byteCount 数据大小
-     * @param timestamp
+     * @param timestamp 现在 到 开始录制的一个时间
      */
     @Override
     public void OnPCMData(byte[] data, int start, int byteCount, long timestamp) {
         // TODO Auto-generated method stub
-        //LogUtil.debug(TAG, String.format("Java: raw audio pcm data, start %d, size %d", start, byteCount));
+        LogUtil.debug("onPCMData", String.format("Java: raw audio pcm data, start %d, size %d timestamp %d", start, byteCount,timestamp));
 
         mAudioLock.lock();
         try {
@@ -2333,6 +2329,7 @@ public class CameraRecorderView extends SurfaceView
                 if (mPlayerTimeOffset == -1) {
                     // > 0: audioplayer start earlier than recorder
                     // < 0: audioplayer start later than recorder
+                    // 判断录制背景音的时间 与 距离背景音乐开始的 offset
                     mPlayerTimeOffset = mAudioPlayer.getCurrentPosition() - (int) timestamp / 1000;
                     LogUtil.info(TAG, "audioplayer: mPlayerTimeOffset: " + mPlayerTimeOffset);
                 }
@@ -2342,13 +2339,15 @@ public class CameraRecorderView extends SurfaceView
                 if (mbPlayingSong)
                     buf_size = AUDIO_PLAYER_BUF_SIZE;
                 if (mAudioTrackBufWrite > buf_size * 3 / 4) {
-                    if (left > buf_size * 3 / 4) {
+                    if (left > buf_size * 3 / 4) { // 如果写的已读的 3/4个缓冲区大小
                         LogUtil.warn(TAG, String.format(Locale.US,
                                 "drop audio_track data: read_pos %d, write_pos %d, left %d",
                                 mAudioTrackBufRead, mAudioTrackBufWrite, left));
-                        left = buf_size * 3 / 4;
+                        left = buf_size * 3 / 4;  // 如果大于3/4 ，只截取3/4的，其他的丢弃
+                        LogUtil.error("zxw","对audio数据做了丢弃的操作！！");
                     }
                     if (left > 0) {
+                        //todo to debug
                         byte[] tmp = new byte[left];
                         System.arraycopy(mAudioTrackBuf, mAudioTrackBufRead, tmp, 0, left);
                         System.arraycopy(tmp, 0, mAudioTrackBuf, 0, left);
@@ -2362,7 +2361,8 @@ public class CameraRecorderView extends SurfaceView
 //                    if (left >= byteCount)
 //                        need_mix = true;
 //                }
-                if (mbPlayingSong) {
+                if (mbPlayingSong) { //如果有背景音乐  需要做 背景音 和 视频音的混合
+                    //表示录制背景音的时间
                     int player_msec = mPlayerBufTimestamp - mPlayerTimeOffset;
                     if (player_msec < 0)
                         player_msec = 0;
@@ -2372,9 +2372,9 @@ public class CameraRecorderView extends SurfaceView
                     int head_msec = player_msec - cache_msec;
                     if (head_msec < 0)
                         head_msec = 0;
-                    //LogUtil.info(TAG, String.format(Locale.US,
-                    //        "audioplayer: player %d(cache %d, tail %d), recorder %d",
-                    //        head_msec, cache_msec, player_msec, recorder_msec));
+                    LogUtil.info(TAG, String.format(Locale.US,
+                            "audioplayer: player %d(cache %d, tail %d), recorder %d",
+                            head_msec, cache_msec, player_msec, recorder_msec));
 
                     if (recorder_msec - head_msec > MIX_THRESHOLD_MSEC) {
                         // skip some data
@@ -2391,18 +2391,23 @@ public class CameraRecorderView extends SurfaceView
                                 head_msec, recorder_msec - head_msec, skip_size));
                     }
                     if (head_msec - recorder_msec <= MIX_THRESHOLD_MSEC && left >= byteCount) {
+                        //todo 记得改回去， 原来是true
                         need_mix = true;
+                        LogUtil.warn("mix", "yes do mix");
                     } else {
-                        LogUtil.warn(TAG, "audioplayer: fill mute, no mix");
+                        LogUtil.warn("mix", "no, don't do mix, audioplayer: fill mute, no mix");
                     }
                 }
-                if (need_mix) {
+
+                if (need_mix) {//这里做了混音？ 但是为什么不做混音也有混音效果，只是声音比较小
+                    LogUtil.debug("zxw","正在混音");
                     byte[] audiotrack_data = new byte[byteCount];
                     System.arraycopy(mAudioTrackBuf, mAudioTrackBufRead, audiotrack_data, 0, byteCount);
                     mAudioTrackBufRead += byteCount;
 
                     for (int i = 0; i < byteCount; i++) {
-
+                        //data 是麦克风的数据
+                        // audiotrack_data 是背景音里面的数据
                         float samplef1 = data[start + i] * 1.4f /*voice input gain*/ / 128.0f;      //     2^7=128
                         float samplef2 = audiotrack_data[i] * mMixVolume / 128.0f;
 

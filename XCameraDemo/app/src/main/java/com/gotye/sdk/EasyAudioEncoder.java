@@ -1,6 +1,7 @@
 package com.gotye.sdk;
 
 import android.content.Context;
+import android.provider.Settings;
 
 import com.gotye.bibo.util.Constants;
 import com.gotye.bibo.util.LogUtil;
@@ -11,7 +12,7 @@ public class EasyAudioEncoder implements AudioEncoderInterface {
 
     private static final int INVALID_HANDLE = -1;
     private static final int BUF_SIZE       = 48 * 2 * 50; // 48 khz, 2 channel for 50 msec
-
+    private long mHandle = INVALID_HANDLE; //不要删除这个c 底层有用到
 	private OnAudioDataListener mOnDataListener;
     private byte[] mPcmData = null;
     private int mPcmDataOffset = 0;
@@ -28,7 +29,9 @@ public class EasyAudioEncoder implements AudioEncoderInterface {
 	public boolean open(int sample_rate, int channels, int bitrate) {
         mPcmData = new byte[BUF_SIZE];
 		mEncodedData = new byte[BUF_SIZE];
-		boolean ret = EasyAudioEncoderOpen(sample_rate, channels, bitrate,false);
+        //低版本 调用 native 方法的时候可能会失败
+        boolean    ret = EasyAudioEncoderOpen(sample_rate, channels, bitrate,false);
+
         mBufSize = EasyAudioEncoderGetBufSize();
         mOneSecDataSize = sample_rate * channels * 2;
 		mTotalDataSize = 0L;

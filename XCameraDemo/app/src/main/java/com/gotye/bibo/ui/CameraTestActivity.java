@@ -722,8 +722,7 @@ public class CameraTestActivity extends AppCompatActivity
                         mbEncodeAudio, mbUseX264Encode, mbUseRotate,
                         mbUseFdkAACEncode));
 
-        RecordCountingDown(3);
-
+//        RecordCountingDown(3);
         mTvRecTime.setVisibility(View.VISIBLE);
         // kick off msg
         mHandler.sendEmptyMessage(MainHandler.MSG_UPDATE_DURATION);
@@ -1205,6 +1204,10 @@ public class CameraTestActivity extends AppCompatActivity
         cbX264Rotate.setChecked(mbUseRotate);
         cbFdkAACEncode.setChecked(mbUseFdkAACEncode);
 
+        if (Build.VERSION.SDK_INT <=Build.VERSION_CODES.JELLY_BEAN_MR1){
+            cbTextureEncode.setEnabled(false);
+            mbTextureEncode = false;
+        }
 
         cbTextureEncode.setOnCheckedChangeListener(new OnCheckedChangeListener() {
             @Override
@@ -1311,7 +1314,7 @@ public class CameraTestActivity extends AppCompatActivity
                 if (!mbUseX264Encode)
                     mbUseRotate = false;
 
-                mView.setExtureEncodeMode(mbTextureEncode);
+                mView.setTextureEncodeMode(mbTextureEncode);
                 updateBeautifyUI();
 
                 mView.setColorPicker(mbEnableColorPicker);

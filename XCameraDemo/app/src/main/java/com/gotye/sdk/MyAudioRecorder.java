@@ -74,7 +74,7 @@ public class MyAudioRecorder {
 	/**
 	 *
 	 * @param source 表示音频源  详细的 参考 See {@link MediaRecorder.AudioSource}
-	 * @param sampleRate 取样 码率
+	 * @param sampleRate 取样 码率 采样人声一般用 44100
 	 * @param channels See {@link AudioFormat#CHANNEL_IN_MONO} and
 	 *   {@link AudioFormat#CHANNEL_IN_STEREO}.  {@link AudioFormat#CHANNEL_IN_MONO} is guaranteed
 	 *   to work on all devices.
@@ -209,6 +209,7 @@ public class MyAudioRecorder {
                             mTotalDataLen += data.length;
                             LogUtil.warn(TAG, "fill mute audio data, gap " + gap_msec + " msec");
                         }
+
 					}
 				}
 			}
