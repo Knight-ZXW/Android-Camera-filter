@@ -146,6 +146,7 @@ public class CameraController
             }
 
             try {
+
                 findCameraSupportValue(DEFAULT_PICTURE_WIDTH, DEFAULT_PICTURE_HEIGHT);
                 return true;
             } catch (Exception e) {
@@ -188,6 +189,7 @@ public class CameraController
 
                 //拍照尺寸
                 cp.setPictureSize(mCameraPictureSize.width, mCameraPictureSize.height);
+
                 List<Integer> picFormatList = cp.getSupportedPictureFormats();
                 for (int i = 0; i < picFormatList.size(); i++) {
                     LogUtil.info(TAG, String.format(Locale.US,
@@ -328,6 +330,11 @@ public class CameraController
         return true;
     }
 
+    /**
+     * Android 4.0 以上才支持纹理模式  才有滤镜的功能
+     * @param surfaceTexture 纹理holder
+     * @return 是否启动成功
+     */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
     public boolean startCameraPreview(SurfaceTexture surfaceTexture) {
         LogUtil.info(TAG, "Java: startCameraPreview()");
@@ -373,6 +380,12 @@ public class CameraController
         return false;
     }
 
+    /**
+     *
+     * @param callback preview 数据的回调接口
+     * @param bufCount 给camera callback  设置的callbackbuffer 数量，作为一个显示的缓存
+     * @return
+     */
     public boolean setCameraPreviewCallback(Camera.PreviewCallback callback, int bufCount) {
         LogUtil.info(TAG, "Java: setCameraPreviewCallback()");
 
@@ -405,6 +418,7 @@ public class CameraController
         return false;
     }
 
+    @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
     public void setFaceDetectionListener(Camera.FaceDetectionListener listener) {
         LogUtil.info(TAG, "Java: setFaceDetectionListener()");
 
@@ -419,6 +433,10 @@ public class CameraController
         }
     }
 
+    /**
+     * 取消预览
+     * @return
+     */
     public boolean stopCameraPreview() {
         LogUtil.info(TAG, "Java: stopCameraPreview()");
         if (mCamera != null) {

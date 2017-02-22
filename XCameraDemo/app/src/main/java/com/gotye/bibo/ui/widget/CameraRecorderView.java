@@ -216,7 +216,7 @@ public class CameraRecorderView extends SurfaceView
 
     // picture
     private String mSaveFolder;
-    private Bitmap mBitmap; // for texture take picture mode
+    private Bitmap mTakePictureBitmap; // for texture take picture mode
     private TakePictureCallback mTakePictureCallback;
 
     //    private boolean mbPeerConnected = false; // pc connected, video and audio can transfer
@@ -595,8 +595,6 @@ public class CameraRecorderView extends SurfaceView
         public static final int CONFIGURE_CAMERA = 1002;
         public static final int START_CAMERA_PREVIEW = 1003;
         public static final int STOP_CAMERA_PREVIEW = 1004;
-        public static final int SELECT_CAMERA_RESOLUTION = 1010;
-
         private WeakReference<CameraRecorderView> mWeakView;
         private CommonHandlerListener mListener;
 
@@ -1135,13 +1133,60 @@ public class CameraRecorderView extends SurfaceView
         changeFilter(mNewFilterType, params);
     }
 
+    /**
+     *  选择预览界面 大小
+     */
     public void selectPreviewSize() {
-        mCameraHandler.sendEmptyMessage(CameraHandler.SELECT_CAMERA_RESOLUTION);
+        popOutputTypeDlg();
     }
 
+    /**
+     * 弹出预览大小选择的dialog
+     */
+    private void popOutputTypeDlg() {
+        final List<Camera.Size> ResList = CameraHelper.getSupportedPreviewSize(
+                CameraController.getInstance().getCameraParameters());
+        if (ResList == null || ResList.size() <= 0) {
+            Toast.makeText(mContext, "没有可以选择的摄像分辨率", Toast.LENGTH_LONG).show();
+        }
+        int index = -1;
+        List<String> CamResList = new ArrayList<String>();
+        for (int i = 0; i < ResList.size(); i++) {
+            Camera.Size size = ResList.get(i);
+            CamResList.add(String.format("%d x %d", size.width, size.height));
+        }
+
+        final String[] strRes = CamResList.toArray(new String[CamResList.size()]);
+        Dialog choose_mux_fmt_dlg = new AlertDialog.Builder(mContext)
+                .setTitle("选择摄像头分辨率")
+                .setSingleChoiceItems(strRes, index, /*default selection item number*/
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int whichButton) {
+
+                                //if (whichButton != mCamResIndex) {
+                                Toast.makeText(mContext, "选择分辨率 " + strRes[whichButton],
+                                        Toast.LENGTH_SHORT).show();
+
+                                Camera.Size new_size = ResList.get(whichButton);
+                                mCameraHandler.sendMessage(
+                                        mCameraHandler.obtainMessage(
+                                                CameraHandler.SETUP_CAMERA,
+                                                new_size.width, new_size.height));
+                                //}
+
+                                dialog.dismiss();
+                            }
+                        })
+                .setNegativeButton("取消", null)
+                .create();
+        choose_mux_fmt_dlg.show();
+    }
+
+    /**
+     * 切换摄像头
+     */
     public void switchCamera() {
         mbUseFrontCam = !mbUseFrontCam;
-
         mCameraHandler.sendMessage(
                 mCameraHandler.obtainMessage(
                         CameraHandler.SETUP_CAMERA));
@@ -1295,147 +1340,6 @@ public class CameraRecorderView extends SurfaceView
         }
     };
 
-    private Camera.ShutterCallback mShutterCallback = new Camera.ShutterCallback() {
-        public void onShutter() {
-            /* 按下快门瞬间会调用这里的程序 */
-            LogUtil.info(TAG, "Java: onShutter()");
-        }
-    };
-
-
-    //在takepicture中调用的回调方法之一，接收jpeg格式的图像
-    private Camera.PictureCallback mJpegCallback = new Camera.PictureCallback() {
-        public void onPictureTaken(byte[] jpeg, Camera camera) {
-            LogUtil.info(TAG, "Java: onPictureTaken() jpeg, size " + jpeg.length);
-
-            if (mbTextureEncode) {
-                mBitmap = BitmapFactory.decodeByteArray(jpeg, 0, jpeg.length);
-                LogUtil.info(TAG, String.format(Locale.US,
-                        "picture bitmap info: %d x %d",
-                        mBitmap.getWidth(), mBitmap.getHeight()));
-            } else {
-                new SavePictureTask().execute(jpeg);
-            }
-
-            camera.startPreview();
-        }
-    };
-
-    // 保存至手机卡 中
-    private class SavePictureTask extends AsyncTask<byte[], String, String> {
-
-        @Override
-        protected void onPostExecute(String s) {
-            if (mTakePictureCallback != null) {
-                if (s != null)
-                    mTakePictureCallback.takePictureOK(s);
-                else
-                    mTakePictureCallback.takePictureError(-100);
-            }
-        }
-
-        @Override
-        protected String doInBackground(byte[]... params) {
-            SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US);
-            String str_time = format.format((new Date()));
-            String file_path = mSaveFolder + "/" + str_time + "_hid.jpg";
-            try {
-                FileOutputStream fos = new FileOutputStream(file_path);
-                fos.write(params[0]);
-                fos.close();
-                return file_path;
-            } catch (Exception e) {
-                e.printStackTrace();
-                LogUtil.error(TAG, e.getMessage());
-            }
-
-            return null;
-        }
-
-        //BMP文件头
-        private byte[] addBMPImageHeader(int size) {
-            byte[] buffer = new byte[14];
-            buffer[0] = 0x42;
-            buffer[1] = 0x4D;
-            buffer[2] = (byte) (size >> 0);
-            buffer[3] = (byte) (size >> 8);
-            buffer[4] = (byte) (size >> 16);
-            buffer[5] = (byte) (size >> 24);
-            buffer[6] = 0x00;
-            buffer[7] = 0x00;
-            buffer[8] = 0x00;
-            buffer[9] = 0x00;
-            buffer[10] = 0x36;
-            buffer[11] = 0x00;
-            buffer[12] = 0x00;
-            buffer[13] = 0x00;
-            return buffer;
-        }
-
-        //BMP文件信息头
-        private byte[] addBMPImageInfosHeader(int w, int h) {
-            byte[] buffer = new byte[40];
-            buffer[0] = 0x28;
-            buffer[1] = 0x00;
-            buffer[2] = 0x00;
-            buffer[3] = 0x00;
-            buffer[4] = (byte) (w >> 0);
-            buffer[5] = (byte) (w >> 8);
-            buffer[6] = (byte) (w >> 16);
-            buffer[7] = (byte) (w >> 24);
-            buffer[8] = (byte) (h >> 0);
-            buffer[9] = (byte) (h >> 8);
-            buffer[10] = (byte) (h >> 16);
-            buffer[11] = (byte) (h >> 24);
-            buffer[12] = 0x01;
-            buffer[13] = 0x00;
-            buffer[14] = 0x18;
-            buffer[15] = 0x00;
-            buffer[16] = 0x00;
-            buffer[17] = 0x00;
-            buffer[18] = 0x00;
-            buffer[19] = 0x00;
-            buffer[20] = 0x00;
-            buffer[21] = 0x00;
-            buffer[22] = 0x00;
-            buffer[23] = 0x00;
-            buffer[24] = (byte) 0xE0;
-            buffer[25] = 0x01;
-            buffer[26] = 0x00;
-            buffer[27] = 0x00;
-            buffer[28] = 0x02;
-            buffer[29] = 0x03;
-            buffer[30] = 0x00;
-            buffer[31] = 0x00;
-            buffer[32] = 0x00;
-            buffer[33] = 0x00;
-            buffer[34] = 0x00;
-            buffer[35] = 0x00;
-            buffer[36] = 0x00;
-            buffer[37] = 0x00;
-            buffer[38] = 0x00;
-            buffer[39] = 0x00;
-            return buffer;
-        }
-
-        private byte[] addBMP_RGB_888(int[] b, int w, int h) {
-            int len = b.length;
-            System.out.println(b.length);
-            byte[] buffer = new byte[w * h * 3];
-            int offset = 0;
-            for (int i = len - 1; i >= 0; i -= w) {
-                //DIB文件格式最后一行为第一行，每行按从左到右顺序
-                int end = i, start = i - w + 1;
-                for (int j = start; j <= end; j++) {
-                    buffer[offset] = (byte) (b[j] >> 0);
-                    buffer[offset + 1] = (byte) (b[j] >> 8);
-                    buffer[offset + 2] = (byte) (b[j] >> 16);
-                    offset += 3;
-                }
-            }
-            return buffer;
-        }
-    }
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
@@ -1768,44 +1672,7 @@ public class CameraRecorderView extends SurfaceView
         LogUtil.info(TAG, "Java: video encoder closed");
     }
 
-    private void popOutputTypeDlg() {
-        final List<Camera.Size> ResList = CameraHelper.getSupportedPreviewSize(
-                CameraController.getInstance().getCameraParameters());
-        if (ResList == null || ResList.size() <= 0) {
-            Toast.makeText(mContext, "没有可以选择的摄像分辨率", Toast.LENGTH_LONG).show();
-        }
-        int index = -1;
-        List<String> CamResList = new ArrayList<String>();
-        for (int i = 0; i < ResList.size(); i++) {
-            Camera.Size size = ResList.get(i);
-            CamResList.add(String.format("%d x %d", size.width, size.height));
-        }
 
-        final String[] strRes = CamResList.toArray(new String[CamResList.size()]);
-        Dialog choose_mux_fmt_dlg = new AlertDialog.Builder(mContext)
-                .setTitle("选择摄像头分辨率")
-                .setSingleChoiceItems(strRes, index, /*default selection item number*/
-                        new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int whichButton) {
-
-                                //if (whichButton != mCamResIndex) {
-                                Toast.makeText(mContext, "选择分辨率 " + strRes[whichButton],
-                                        Toast.LENGTH_SHORT).show();
-
-                                Camera.Size new_size = ResList.get(whichButton);
-                                mCameraHandler.sendMessage(
-                                        mCameraHandler.obtainMessage(
-                                                CameraHandler.SETUP_CAMERA,
-                                                new_size.width, new_size.height));
-                                //}
-
-                                dialog.dismiss();
-                            }
-                        })
-                .setNegativeButton("取消", null)
-                .create();
-        choose_mux_fmt_dlg.show();
-    }
 
 
     /**
@@ -1828,7 +1695,7 @@ public class CameraRecorderView extends SurfaceView
         }
 
         long start_drawFrame = System.currentTimeMillis();
-        int newTexId = mTextureId;
+        int texturedId = mTextureId;
 
         if (mDisplaySurface != null) {
             // Latch the next frame from the camera.
@@ -1869,7 +1736,7 @@ public class CameraRecorderView extends SurfaceView
             mFullFrameBlit.getFilter().setSurfaceSize(mSurfaceWidth, mSurfaceHeight);
             mFullFrameBlit.getFilter().setTextureSize(mPreviewWidth, mPreviewHeight);
             setViewport(mSurfaceWidth, mSurfaceHeight);
-            mFullFrameBlit.drawFrame(newTexId, mTmpMatrix);
+            mFullFrameBlit.drawFrame(texturedId, mTmpMatrix);
 
             if (mbEnableColorPicker) {
                 IntBuffer buffer = IntBuffer.allocate(1);
@@ -1939,64 +1806,7 @@ public class CameraRecorderView extends SurfaceView
             */
 
             // take picture
-            if (mBitmap != null) {
-                int pictureTextureId;
-                int bufferTexID;
-                FrameBufferObject frameBufferObject = new FrameBufferObject();
-                IntBuffer buffer;
-                Bitmap bmp;
-                int pic_width, pic_height;
-
-                pic_width = mBitmap.getWidth();
-                pic_height = mBitmap.getHeight();
-
-                pictureTextureId = GlUtil.createTexture(
-                        GLES20.GL_TEXTURE_2D, mBitmap);
-
-                bufferTexID = GlUtil.createTexture(
-                        GLES20.GL_TEXTURE_2D,
-                        GLES20.GL_RGBA,
-                        null, pic_width, pic_height);
-                frameBufferObject.bindTexture(bufferTexID);
-
-                buffer = IntBuffer.allocate(pic_width * pic_height);
-                mFullFrameBlit.changeProgram(
-                        FilterManager.getImageFilter(mNewFilterType, mContext, mNewFilterParams));
-                mFullFrameBlit.getFilter().setSurfaceSize(pic_width, pic_height);
-                mFullFrameBlit.getFilter().setTextureSize(pic_width, pic_height);
-                // note: if setFrameBuffer, setSurfaceSize is useless
-                // but need a mechanism to notify output size
-                mFullFrameBlit.getFilter().setFrameBuffer(frameBufferObject.getFrameBufferId());
-                mFullFrameBlit.getFilter().setOutput(true);
-                mFullFrameBlit.resetMVPMatrix();
-                mFullFrameBlit.scaleMVPMatrix(1f, 1f);
-                setViewport(pic_width, pic_height);
-                mFullFrameBlit.drawFrame(pictureTextureId, IDENTITY_MATRIX);
-                mFullFrameBlit.getFilter().setFrameBuffer(0); // reset to normal
-                mFullFrameBlit.getFilter().setOutput(false);
-                mFullFrameBlit.changeProgram(
-                        FilterManager.getCameraFilter(mNewFilterType, mContext, mNewFilterParams));
-                GLES20.glReadPixels(0, 0, pic_width, pic_height,
-                        GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, buffer);
-                bmp = Bitmap.createBitmap(pic_width, pic_height, Bitmap.Config.ARGB_8888);
-                bmp.copyPixelsFromBuffer(buffer);
-                LogUtil.info(TAG, String.format(Locale.US, "Java: bitmap info %d x %d",
-                        bmp.getWidth(), bmp.getHeight()));
-                frameBufferObject.release();
-
-                if (mTakePictureCallback != null) {
-                    SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US);
-                    String str_time = format.format((new Date()));
-
-                    String file_path = mSaveFolder + "/" + str_time + "_hid.jpg";
-                    ImageUtil.saveBitmap(bmp, file_path);
-                    bmp.recycle();
-                    mTakePictureCallback.takePictureOK(file_path);
-                }
-
-                mBitmap.recycle();
-                mBitmap = null;
-            }
+            texturedPictureBitmap();
         }
 
         // Send it to the video encoder.
@@ -2054,7 +1864,7 @@ public class CameraRecorderView extends SurfaceView
                 mFullFrameBlit.resetMVPMatrix();
                 mFullFrameBlit.scaleMVPMatrix(mbUseFrontCam ? -1f : 1f, 1f);
                 setViewport(mEncWidth, mEncHeight);
-                mFullFrameBlit.drawFrame(newTexId/*mTextureId*/, mTmpMatrix);
+                mFullFrameBlit.drawFrame(texturedId/*mTextureId*/, mTmpMatrix);
 
 
                 if (mWatermarkFrame != null) {
@@ -2092,6 +1902,8 @@ public class CameraRecorderView extends SurfaceView
         if (!mbRecording && mPrevFrameCount % 10 == 0)
             mAvgDrawFrameMsec = mInstantAvgDrawFrameMsec;
     }
+
+
 
     private void setViewport(int w, int h) {
         // single filter need set view port by user
@@ -2232,12 +2044,11 @@ public class CameraRecorderView extends SurfaceView
         mTextureEncHandler.sendEmptyMessage(TextureEncoderHandler.MSG_FRAME_AVAILABLE);
     }
 
+
+
     @Override
     public void handleMessage(final Message msg) {
         switch (msg.what) {
-            case CameraHandler.SELECT_CAMERA_RESOLUTION:
-                popOutputTypeDlg();
-                break;
             case CameraHandler.SETUP_CAMERA: {
                 final int width = msg.arg1;
                 final int height = msg.arg2;
@@ -2245,6 +2056,7 @@ public class CameraRecorderView extends SurfaceView
 
                 CameraController ins = CameraController.getInstance();
                 // will set front-facing camera if mbUseFrontCam is true
+                //检查是否支持前置摄像头
                 boolean supportFrontFacingCamera = CameraHelper.checkSupportFrontFacingCamera();
                 if (mbUseFrontCam & !supportFrontFacingCamera) { // modify use if NON front-cam exists
                     mbUseFrontCam = false;
@@ -2281,9 +2093,9 @@ public class CameraRecorderView extends SurfaceView
                 final int width = msg.arg1;
                 final int height = msg.arg2;
 
-                CameraController ins = CameraController.getInstance();
+                CameraController cameraController = CameraController.getInstance();
                 Camera.Size previewSize = CameraHelper.getOptimalPreviewSize(
-                        ins.getCameraParameters(),
+                        cameraController.getCameraParameters(),
                         width, height);
                 if (previewSize != null) {
                     LogUtil.info(TAG, String.format("Java: previewSize %d x %d",
@@ -2292,7 +2104,7 @@ public class CameraRecorderView extends SurfaceView
                     mPreviewHeight = previewSize.height;
 
 //                    if (mVideoInterface != null) {
-//                        int camera_orientation = ins.getCameraOrientation();
+//                        int camera_orientation = cameraController.getCameraOrientation();
 //                        int rotation;
 //                        if (mbUseFrontCam)
 //                            rotation = (360 - mOrientation + camera_orientation) % 360;
@@ -2303,13 +2115,13 @@ public class CameraRecorderView extends SurfaceView
 
                     boolean setFpsRange = Util.readSettingsBoolean(mContext,
                             "set_camera_fps_range", true);
-                    if (!ins.configureCameraParameters(previewSize, setFpsRange)) {
+                    if (!cameraController.configureCameraParameters(previewSize, setFpsRange)) {
                         Util.writeSettingsBoolean(mContext, "set_camera_fps_range", false);
 
                         // try to set camera parameter without fps range
                         LogUtil.warn(TAG, "try to set camera parameter without fps range");
-                        ins.openCamera(getContext().getApplicationContext(), mOrientation);
-                        if (!ins.configureCameraParameters(previewSize, false))
+                        cameraController.openCamera(getContext().getApplicationContext(), mOrientation);
+                        if (!cameraController.configureCameraParameters(previewSize, false))
                             throw new RuntimeException("failed to set camera parameter");
                     }
                     if (!mbTextureEncode)
@@ -2713,4 +2525,239 @@ public class CameraRecorderView extends SurfaceView
         mbSetupWhenStart = true;
         mbSurfaceCreated = false;
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//----------------                 拍照的相关代码---------------------------------------------------
+    private Camera.ShutterCallback mShutterCallback = new Camera.ShutterCallback() {
+        public void onShutter() {
+            /* 按下快门瞬间会调用这里的程序 */
+            LogUtil.info(TAG, "Java: onShutter()");
+        }
+    };
+
+
+    //在takepicture中调用的回调方法之一，接收jpeg格式的图像
+    private Camera.PictureCallback mJpegCallback = new Camera.PictureCallback() {
+        public void onPictureTaken(byte[] jpeg, Camera camera) {
+            LogUtil.info(TAG, "Java: onPictureTaken() jpeg, size " + jpeg.length);
+
+            if (mbTextureEncode) {
+                mTakePictureBitmap = BitmapFactory.decodeByteArray(jpeg, 0, jpeg.length);
+                LogUtil.info(TAG, String.format(Locale.US,
+                        "picture bitmap info: %d x %d",
+                        mTakePictureBitmap.getWidth(), mTakePictureBitmap.getHeight()));
+            } else {
+                new SavePictureTask().execute(jpeg);
+            }
+
+            camera.startPreview();
+        }
+    };
+
+    // 保存至手机卡 中
+    private class SavePictureTask extends AsyncTask<byte[], String, String> {
+
+        @Override
+        protected void onPostExecute(String s) {
+            if (mTakePictureCallback != null) {
+                if (s != null)
+                    mTakePictureCallback.takePictureOK(s);
+                else
+                    mTakePictureCallback.takePictureError(-100);
+            }
+        }
+
+        @Override
+        protected String doInBackground(byte[]... params) {
+            SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US);
+            String str_time = format.format((new Date()));
+            String file_path = mSaveFolder + "/" + str_time + "_hid.jpg";
+            try {
+                FileOutputStream fos = new FileOutputStream(file_path);
+                fos.write(params[0]);
+                fos.close();
+                return file_path;
+            } catch (Exception e) {
+                e.printStackTrace();
+                LogUtil.error(TAG, e.getMessage());
+            }
+
+            return null;
+        }
+
+        //BMP文件头
+        private byte[] addBMPImageHeader(int size) {
+            byte[] buffer = new byte[14];
+            buffer[0] = 0x42;
+            buffer[1] = 0x4D;
+            buffer[2] = (byte) (size >> 0);
+            buffer[3] = (byte) (size >> 8);
+            buffer[4] = (byte) (size >> 16);
+            buffer[5] = (byte) (size >> 24);
+            buffer[6] = 0x00;
+            buffer[7] = 0x00;
+            buffer[8] = 0x00;
+            buffer[9] = 0x00;
+            buffer[10] = 0x36;
+            buffer[11] = 0x00;
+            buffer[12] = 0x00;
+            buffer[13] = 0x00;
+            return buffer;
+        }
+
+        //BMP文件信息头
+        private byte[] addBMPImageInfosHeader(int w, int h) {
+            byte[] buffer = new byte[40];
+            buffer[0] = 0x28;
+            buffer[1] = 0x00;
+            buffer[2] = 0x00;
+            buffer[3] = 0x00;
+            buffer[4] = (byte) (w >> 0);
+            buffer[5] = (byte) (w >> 8);
+            buffer[6] = (byte) (w >> 16);
+            buffer[7] = (byte) (w >> 24);
+            buffer[8] = (byte) (h >> 0);
+            buffer[9] = (byte) (h >> 8);
+            buffer[10] = (byte) (h >> 16);
+            buffer[11] = (byte) (h >> 24);
+            buffer[12] = 0x01;
+            buffer[13] = 0x00;
+            buffer[14] = 0x18;
+            buffer[15] = 0x00;
+            buffer[16] = 0x00;
+            buffer[17] = 0x00;
+            buffer[18] = 0x00;
+            buffer[19] = 0x00;
+            buffer[20] = 0x00;
+            buffer[21] = 0x00;
+            buffer[22] = 0x00;
+            buffer[23] = 0x00;
+            buffer[24] = (byte) 0xE0;
+            buffer[25] = 0x01;
+            buffer[26] = 0x00;
+            buffer[27] = 0x00;
+            buffer[28] = 0x02;
+            buffer[29] = 0x03;
+            buffer[30] = 0x00;
+            buffer[31] = 0x00;
+            buffer[32] = 0x00;
+            buffer[33] = 0x00;
+            buffer[34] = 0x00;
+            buffer[35] = 0x00;
+            buffer[36] = 0x00;
+            buffer[37] = 0x00;
+            buffer[38] = 0x00;
+            buffer[39] = 0x00;
+            return buffer;
+        }
+
+        private byte[] addBMP_RGB_888(int[] b, int w, int h) {
+            int len = b.length;
+            System.out.println(b.length);
+            byte[] buffer = new byte[w * h * 3];
+            int offset = 0;
+            for (int i = len - 1; i >= 0; i -= w) {
+                //DIB文件格式最后一行为第一行，每行按从左到右顺序
+                int end = i, start = i - w + 1;
+                for (int j = start; j <= end; j++) {
+                    buffer[offset] = (byte) (b[j] >> 0);
+                    buffer[offset + 1] = (byte) (b[j] >> 8);
+                    buffer[offset + 2] = (byte) (b[j] >> 16);
+                    offset += 3;
+                }
+            }
+            return buffer;
+        }
+    }
+
+    /**
+     * 如果有拍照的信息，将纹理模式的效果运用的bitmap上
+     */
+    private void texturedPictureBitmap() {
+        if (mTakePictureBitmap != null) {
+            int pictureTextureId;
+            int bufferTexID;
+            FrameBufferObject frameBufferObject = new FrameBufferObject();
+            IntBuffer buffer;
+            Bitmap bmp;
+            int pic_width, pic_height;
+
+            pic_width = mTakePictureBitmap.getWidth();
+            pic_height = mTakePictureBitmap.getHeight();
+
+            pictureTextureId = GlUtil.createTexture(
+                    GLES20.GL_TEXTURE_2D, mTakePictureBitmap);
+
+            bufferTexID = GlUtil.createTexture(
+                    GLES20.GL_TEXTURE_2D,
+                    GLES20.GL_RGBA,
+                    null, pic_width, pic_height);
+            frameBufferObject.bindTexture(bufferTexID);
+
+            buffer = IntBuffer.allocate(pic_width * pic_height);
+            mFullFrameBlit.changeProgram(
+                    FilterManager.getImageFilter(mNewFilterType, mContext, mNewFilterParams));
+            mFullFrameBlit.getFilter().setSurfaceSize(pic_width, pic_height);
+            mFullFrameBlit.getFilter().setTextureSize(pic_width, pic_height);
+            // note: if setFrameBuffer, setSurfaceSize is useless
+            // but need a mechanism to notify output size
+            mFullFrameBlit.getFilter().setFrameBuffer(frameBufferObject.getFrameBufferId());
+            mFullFrameBlit.getFilter().setOutput(true);
+            mFullFrameBlit.resetMVPMatrix();
+            mFullFrameBlit.scaleMVPMatrix(1f, 1f);
+            setViewport(pic_width, pic_height);
+            mFullFrameBlit.drawFrame(pictureTextureId, IDENTITY_MATRIX);
+            mFullFrameBlit.getFilter().setFrameBuffer(0); // reset to normal
+            mFullFrameBlit.getFilter().setOutput(false);
+            mFullFrameBlit.changeProgram(
+                    FilterManager.getCameraFilter(mNewFilterType, mContext, mNewFilterParams));
+            GLES20.glReadPixels(0, 0, pic_width, pic_height,
+                    GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, buffer);
+            bmp = Bitmap.createBitmap(pic_width, pic_height, Bitmap.Config.ARGB_8888);
+            bmp.copyPixelsFromBuffer(buffer);
+            LogUtil.info(TAG, String.format(Locale.US, "Java: bitmap info %d x %d",
+                    bmp.getWidth(), bmp.getHeight()));
+            frameBufferObject.release();
+
+            if (mTakePictureCallback != null) {
+                SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US);
+                String str_time = format.format((new Date()));
+
+                String file_path = mSaveFolder + "/" + str_time + "_hid.jpg";
+                ImageUtil.saveBitmap(bmp, file_path);
+                bmp.recycle();
+                mTakePictureCallback.takePictureOK(file_path);
+            }
+
+            mTakePictureBitmap.recycle();
+            mTakePictureBitmap = null;
+        }
+    }
+//----------------                 拍照的相关代码  end----------------------------------------------
+
 }

@@ -392,6 +392,7 @@ public class CameraTestActivity extends AppCompatActivity
         }
 
         mView.setPictureParams(mRootPath + "/pic", this);
+
     }
 
     @Override
@@ -574,21 +575,6 @@ public class CameraTestActivity extends AppCompatActivity
         // is active.
     }
 
-    private String ndsTranslate(String url) {
-        String retUrl = url;
-        for (int i=0;i<nsList.size();i++) {
-            Map<String, String> item = nsList.get(i);
-            String ns = item.get("ns");
-            String ip = item.get("ip");
-            if (url.contains(ns)) {
-                retUrl = url.replace(ns, ip);
-                LogUtil.info(TAG, "ns_replace: final_url: " + retUrl);
-                break;
-            }
-        }
-
-        return retUrl;
-    }
 
     private void stop_rec(final boolean isFinish) {
         if (!mRecording)
@@ -645,9 +631,6 @@ public class CameraTestActivity extends AppCompatActivity
                     String str_time = format.format((new Date()));
                     mUrl = mRootPath + String.format("/out_%s", str_time);
                     switch (mMuxFmt) {
-                        case 0:
-                            mUrl += ".ts";
-                            break;
                         case 1:
                             mUrl += ".mp4";
                             break;
