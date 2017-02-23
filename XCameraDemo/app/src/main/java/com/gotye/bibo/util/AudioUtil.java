@@ -71,6 +71,9 @@ public class AudioUtil {
                 // 文件大小
                 if (cursor.getString(8) != null) {
                     float size = cursor.getInt(8) / 1024f / 1024f;
+                    if (size == 0f){ //错误的文件
+                        continue;
+                    }
                     song.setSize((size + "").substring(0, 4) + "MB");
                 } else {
                     song.setSize("未知");

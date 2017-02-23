@@ -113,6 +113,7 @@ public class EasyAudioEncoder implements AudioEncoderInterface {
 		EasyAudioEncoderClose();
 	}
 
+    //native层 encoder 之后 回调此方法，调用者拿到编码的数据
     private void onDataCallback(byte[] encoded_data, long timestamp) {
         if (mOnDataListener != null) {
             mOnDataListener.OnAudioData(mEncodedData, 0, encoded_data.length, timestamp);

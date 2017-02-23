@@ -165,6 +165,7 @@ public class CameraRecorderView extends SurfaceView
     private PPEncoder mVideoEncoder = null;
     private byte[] mVideoSPSandPPS = null;
     private byte[] mH264 = null;
+    //文件保存的字节流
     private FileOutputStream outSteamH264;
     private int mFileOffset = 0;
     private boolean mbWriteSize = false;
@@ -223,7 +224,7 @@ public class CameraRecorderView extends SurfaceView
 
     //    private boolean mbPeerConnected = false; // pc connected, video and audio can transfer
     private byte[] mAudioTrackBuf = null; //audio track 字节
-    private int mAudioTrackBufRead; //已经读的
+    private int mAudioTrackBufRead; //已经读的 作为操作 audiotrackbuf的一个 index
     private int mAudioTrackBufWrite; //写入的
 
     // watermark
@@ -1407,6 +1408,7 @@ public class CameraRecorderView extends SurfaceView
 
         if (mOrientationListener != null)
             mOrientationListener.disable();
+
     }
 
     @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
@@ -2203,10 +2205,17 @@ public class CameraRecorderView extends SurfaceView
         }
     }
 
+    /**
+     * EasyEncoder的 字节数据回调
+     * @param enc
+     * @param data
+     * @param start
+     * @param byteCount
+     */
     @Override
     public void onSpsPps(PPEncoder enc, byte[] data, int start, int byteCount) {
         // TODO Auto-generated method stub
-        LogUtil.info(TAG, String.format("Java: onSpsPps start %d, byteCount %d", start, byteCount));
+        LogUtil.debug(TAG, String.format("Java: onSpsPps start %d, byteCount %d", start, byteCount));
 
         if (mVideoSPSandPPS == null) {
             mVideoSPSandPPS = new byte[byteCount];
@@ -2258,7 +2267,7 @@ public class CameraRecorderView extends SurfaceView
     // audio player interface
 
     /**
-     *
+     * 播放器播放音乐的 数据解析回调,把数据放入 mAudioTrackBuffer 待onPcmData 方法回调时 混音
      * @param buf 数据
      * @param size buf 这个byte数组的大小
      * @param timestamp 从0开始 每次递增26
@@ -2309,46 +2318,52 @@ public class CameraRecorderView extends SurfaceView
 
     // audio recorder interface
 
+
+    String PCM_TAG = "PCMTAG";//todo remove this
     /**
-     * 获取的手机硬件的
+     * 手机麦克风的pcm数据回调
      *
      * @param data      音频data
-     * @param start     该段数据对应的 时间
-     * @param byteCount 数据大小
-     * @param timestamp 现在 到 开始录制的一个时间
+     * @param start     总是为0
+     * @param byteCount 数据大小 总是 2048
+     * @param timestamp 现在 到 开始录制的一个时间 （从0递增）
      */
     @Override
     public void OnPCMData(byte[] data, int start, int byteCount, long timestamp) {
         // TODO Auto-generated method stub
-        LogUtil.debug("onPCMData", String.format("Java: raw audio pcm data, start %d, size %d timestamp %d", start, byteCount,timestamp));
+        LogUtil.debug(PCM_TAG, String.format("Java: raw audio pcm data, start %d, size %d timestamp %d", start, byteCount,timestamp));
 
         mAudioLock.lock();
         try {
             // mix audio
             if (mbPlayingSong && mAudioTrackBuf != null) {
-                if (mPlayerTimeOffset == -1) {
+                if (mPlayerTimeOffset == -1) {//如果未计算过 则计算一下
                     // > 0: audioplayer start earlier than recorder
                     // < 0: audioplayer start later than recorder
                     // 判断录制背景音的时间 与 距离背景音乐开始的 offset
+                    //如果是同时播放，这2个应该是一样的，但是存在背景音提前播放，或者背景音中途播放
                     mPlayerTimeOffset = mAudioPlayer.getCurrentPosition() - (int) timestamp / 1000;
-                    LogUtil.info(TAG, "audioplayer: mPlayerTimeOffset: " + mPlayerTimeOffset);
+                    LogUtil.error(PCM_TAG, "audioplayer: mPlayerTimeOffset: " + mPlayerTimeOffset +"! 这个应该只调用一次i");
                 }
-
+                //还未写入（读取）的背景音
                 int left = mAudioTrackBufWrite - mAudioTrackBufRead;
+
                 int buf_size = AUDIO_WEBRTC_BUF_SIZE;
                 if (mbPlayingSong)
                     buf_size = AUDIO_PLAYER_BUF_SIZE;
-                if (mAudioTrackBufWrite > buf_size * 3 / 4) {
+
+                if (mAudioTrackBufWrite > buf_size * 3 / 4) { //todo 为什么要做 只读取 3/4 缓冲区数据的操作？？！！
                     if (left > buf_size * 3 / 4) { // 如果写的已读的 3/4个缓冲区大小
-                        LogUtil.warn(TAG, String.format(Locale.US,
+                        LogUtil.warn(PCM_TAG, String.format(Locale.US,
                                 "drop audio_track data: read_pos %d, write_pos %d, left %d",
                                 mAudioTrackBufRead, mAudioTrackBufWrite, left));
                         left = buf_size * 3 / 4;  // 如果大于3/4 ，只截取3/4的，其他的丢弃
-                        LogUtil.error("zxw","对audio数据做了丢弃的操作！！");
+                        LogUtil.error(PCM_TAG,"对audio数据做了丢弃的操作！！");
                     }
-                    if (left > 0) {
+                    if (left > 0) { //做数据的截取操作？ 有点低效
                         //todo to debug
                         byte[] tmp = new byte[left];
+
                         System.arraycopy(mAudioTrackBuf, mAudioTrackBufRead, tmp, 0, left);
                         System.arraycopy(tmp, 0, mAudioTrackBuf, 0, left);
                     }
@@ -2362,17 +2377,19 @@ public class CameraRecorderView extends SurfaceView
 //                        need_mix = true;
 //                }
                 if (mbPlayingSong) { //如果有背景音乐  需要做 背景音 和 视频音的混合
-                    //表示录制背景音的时间
+                    //表示录制背景音的时间 （todo question :相当于真实的录音时间，这个不是应该和timeStamp 大约相同吗）
                     int player_msec = mPlayerBufTimestamp - mPlayerTimeOffset;
-                    if (player_msec < 0)
+                    if (player_msec < 0) {
                         player_msec = 0;
+                        LogUtil.error(TAG,"!!爆炸爆炸！！ 我不相信这个会出现,什么鬼代码");
+                    }
                     int recorder_msec = (int) (timestamp / 1000) - RECORD_LATENCY_MSEC;
                     int one_sec_size = AUDIO_SAMPLE_RATE * AUDIO_CHANNELS * 2/*s16*/;
                     int cache_msec = left * 1000 / one_sec_size;
                     int head_msec = player_msec - cache_msec;
                     if (head_msec < 0)
                         head_msec = 0;
-                    LogUtil.info(TAG, String.format(Locale.US,
+                    LogUtil.info(PCM_TAG, String.format(Locale.US,
                             "audioplayer: player %d(cache %d, tail %d), recorder %d",
                             head_msec, cache_msec, player_msec, recorder_msec));
 
@@ -2386,21 +2403,24 @@ public class CameraRecorderView extends SurfaceView
                         mAudioTrackBufRead += skip_size;
                         left -= skip_size;
 
-                        LogUtil.info(TAG, String.format(Locale.US,
+                        LogUtil.info(PCM_TAG, String.format(Locale.US,
                                 "audioplayer: head_msec %d, delta %d, skip_size %d",
                                 head_msec, recorder_msec - head_msec, skip_size));
                     }
+                    // 前3秒如果不做混音，背景音乐没有混进去 会很小，如果都做混音，会出现噪声（错位），
+                    // 这个混音看不懂啊= =
+                    //最好在录制后丢弃前3秒的结果
                     if (head_msec - recorder_msec <= MIX_THRESHOLD_MSEC && left >= byteCount) {
                         //todo 记得改回去， 原来是true
                         need_mix = true;
-                        LogUtil.warn("mix", "yes do mix");
+                        LogUtil.warn(PCM_TAG, "yes do mix");
                     } else {
-                        LogUtil.warn("mix", "no, don't do mix, audioplayer: fill mute, no mix");
+                        LogUtil.warn(PCM_TAG, "no, don't do mix, audioplayer: fill mute, no mix");
                     }
                 }
 
                 if (need_mix) {//这里做了混音？ 但是为什么不做混音也有混音效果，只是声音比较小
-                    LogUtil.debug("zxw","正在混音");
+                    LogUtil.debug(PCM_TAG,"正在混音");
                     byte[] audiotrack_data = new byte[byteCount];
                     System.arraycopy(mAudioTrackBuf, mAudioTrackBufRead, audiotrack_data, 0, byteCount);
                     mAudioTrackBufRead += byteCount;
@@ -2421,7 +2441,7 @@ public class CameraRecorderView extends SurfaceView
                         data[start + i] = outputSample;
                     }
                 } else {
-                    LogUtil.info(TAG, String.format(Locale.US,
+                    LogUtil.info(PCM_TAG, String.format(Locale.US,
                             "wait for enough audio track data %d.%d",
                             left, byteCount));
                 }
@@ -2430,7 +2450,7 @@ public class CameraRecorderView extends SurfaceView
             if (mAudioEncoder != null) {
                 mAudioClockUsec = timestamp;
                 if (!mAudioEncoder.addAudioData(data, start, byteCount, timestamp))
-                    LogUtil.error(TAG, "Java: failed to encode audio data");
+                    LogUtil.error(PCM_TAG, "Java: failed to encode audio data");
             }
 
 //            if (mbPeerConnected) {
