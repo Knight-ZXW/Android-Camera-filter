@@ -393,6 +393,11 @@ public class CameraTestActivity extends AppCompatActivity
 
         mView.setPictureParams(mRootPath + "/pic", this);
 
+        try {
+            mView.setGifWatermark(getAssets().open("test2.gif"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override

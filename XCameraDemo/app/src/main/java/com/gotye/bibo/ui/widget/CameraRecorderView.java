@@ -24,6 +24,7 @@ import android.os.Message;
 import android.provider.Settings;
 import android.support.v7.app.AlertDialog;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.OrientationEventListener;
 import android.view.SurfaceHolder;
@@ -49,6 +50,7 @@ import com.gotye.bibo.util.FaceUtil;
 import com.gotye.bibo.util.ImageUtil;
 import com.gotye.bibo.util.LogUtil;
 import com.gotye.bibo.util.Util;
+import com.gotye.gif.GifDelegate;
 import com.gotye.sdk.AudioEncoderInterface;
 import com.gotye.sdk.EasyAudioPlayer;
 import com.gotye.sdk.EncoderInterface;
@@ -60,6 +62,7 @@ import com.gotye.sdk.PPEncoder;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
@@ -123,7 +126,8 @@ public class CameraRecorderView extends SurfaceView
     private final static int AUDIO_PLAYER_BUF_SIZE = AUDIO_SAMPLE_RATE * 2 * 5; // 5 sec 作为一个缓冲
 
     //录制的延迟
-    private final static int RECORD_LATENCY_MSEC = 500;
+    //todo 不要延迟试试看
+    private final static int RECORD_LATENCY_MSEC = 0;
     //mix 的阈值
     private final static int MIX_THRESHOLD_MSEC = 100;
 
@@ -182,6 +186,7 @@ public class CameraRecorderView extends SurfaceView
 
     private int mSurfaceWidth, mSurfaceHeight; // surfaceview w x h
     private int mIncomingWidth, mIncomingHeight; // consider rotation w x h
+
     private float mMvpScaleX = 1f, mMvpScaleY = 1f;
 
     private EglCore mEglCore;
@@ -229,12 +234,12 @@ public class CameraRecorderView extends SurfaceView
 
     // watermark
     private Bitmap mWatermarkBitmap;
-    private String mWatermarkText;
-    private int mWatermarkTextSize;
-    private int mWatermarkLeft;
-    private int mWatermarkTop;
-    private int mWatermarkWidth;
-    private int mWatermarkHeight;
+    //    private String mWatermarkText;
+//    private int mWatermarkTextSize;
+    private int mWatermarkLeft =400;
+    private int mWatermarkTop = 100;
+    private int mWatermarkWidth = 200;
+    private int mWatermarkHeight = 200;
     private FullFrameRect mWatermarkFrame;
     private int mWatermarkTextureId;
     private final float[] IDENTITY_MATRIX = new float[16];
@@ -755,10 +760,10 @@ public class CameraRecorderView extends SurfaceView
             return;
         }
 
-        if (mWatermarkText != null) {
-            mWatermarkText = null;
-            LogUtil.warn(TAG, "watermark text is DISABLED because of bitmap is set");
-        }
+//        if (mWatermarkText != null) {
+//            mWatermarkText = null;
+//            LogUtil.warn(TAG, "watermark text is DISABLED because of bitmap is set");
+//        }
 
         mWatermarkBitmap = bitmap;
         mWatermarkLeft = left;
@@ -766,6 +771,22 @@ public class CameraRecorderView extends SurfaceView
         mWatermarkWidth = width;
         mWatermarkHeight = height;
     }
+
+    //----------------------- 动态gif 水印图的支持------------------------------------------------/
+    private enum WaterMode {
+        STATIC, GIF;
+    }
+
+    private WaterMode mWaterMode;
+    private GifDelegate gifDelegate;
+
+    public void setGifWatermark(InputStream inputStream) {
+        gifDelegate = new GifDelegate(mContext, inputStream);
+        gifDelegate.decoderGif();
+        mWaterMode = WaterMode.GIF;
+    }
+    //------------------------ 动态gif 水印图的支持-----------------------------------------------/
+
 
     public void setText(String text, int textsize, int left, int top, int width, int height) {
         LogUtil.info(TAG, String.format(Locale.US,
@@ -781,8 +802,8 @@ public class CameraRecorderView extends SurfaceView
             LogUtil.warn(TAG, "watermark bitmap is DISABLED because of text");
         }
 
-        mWatermarkText = text;
-        mWatermarkTextSize = textsize;
+//        mWatermarkText = text;
+//        mWatermarkTextSize = textsize;
         mWatermarkLeft = left;
         mWatermarkTop = top;
         mWatermarkWidth = width;
@@ -938,7 +959,7 @@ public class CameraRecorderView extends SurfaceView
         setVisibility(View.INVISIBLE);
         setVisibility(View.VISIBLE);
         mCameraHandler.sendMessage(mCameraHandler.obtainMessage(
-                CameraHandler.SETUP_CAMERA ));
+                CameraHandler.SETUP_CAMERA));
     }
 
     public boolean playSong(String url) {
@@ -1136,7 +1157,7 @@ public class CameraRecorderView extends SurfaceView
     }
 
     /**
-     *  选择预览界面 大小
+     * 选择预览界面 大小
      */
     public void selectPreviewSize() {
         popOutputTypeDlg();
@@ -1663,8 +1684,6 @@ public class CameraRecorderView extends SurfaceView
     }
 
 
-
-
     /**
      * Draws a frame onto the SurfaceView and the encoder surface.
      * <p>
@@ -1703,15 +1722,23 @@ public class CameraRecorderView extends SurfaceView
             mCameraTexture.updateTexImage();
             mCameraTexture.getTransformMatrix(mTmpMatrix);
 
-            if ((mWatermarkBitmap != null || mWatermarkText != null) &&
-                    mWatermarkFrame == null) {
+            if (mWaterMode == WaterMode.GIF) {
+                Log.e("zxw", "设置Gif图");
+                mWatermarkBitmap = gifDelegate.getNextBitmap();
+                LogUtil.debug("GIF",mWatermarkBitmap.getByteCount()+"-"+mWatermarkBitmap.getHeight());
                 mWatermarkFrame = new FullFrameRect(
                         FilterManager.getImageFilter(FilterType.Normal, mContext));
-                if (mWatermarkBitmap != null)
-                    mWatermarkTextureId = mWatermarkFrame.createTexture(mWatermarkBitmap);
-                else
-                    mWatermarkTextureId = mWatermarkFrame.createTexture(mWatermarkText, mWatermarkTextSize);
+                mWatermarkTextureId = mWatermarkFrame.createTexture(mWatermarkBitmap);
                 Matrix.setIdentityM(IDENTITY_MATRIX, 0);
+            } else {//普通模式
+                if ((mWatermarkBitmap != null) &&
+                        mWatermarkFrame == null) {
+                    mWatermarkFrame = new FullFrameRect(
+                            FilterManager.getImageFilter(FilterType.Normal, mContext));
+                    if (mWatermarkBitmap != null)
+                        mWatermarkTextureId = mWatermarkFrame.createTexture(mWatermarkBitmap);
+                    Matrix.setIdentityM(IDENTITY_MATRIX, 0);
+                }
             }
 
             GLES20.glClearColor(0f, 0f, 0f, 1f);
@@ -1894,7 +1921,6 @@ public class CameraRecorderView extends SurfaceView
     }
 
 
-
     private void setViewport(int w, int h) {
         // single filter need set view port by user
         // filter group will set view port by self
@@ -2033,7 +2059,6 @@ public class CameraRecorderView extends SurfaceView
         if (Constants.VERBOSE) LogUtil.debug(TAG, "frame available");
         mTextureEncHandler.sendEmptyMessage(TextureEncoderHandler.MSG_FRAME_AVAILABLE);
     }
-
 
 
     @Override
@@ -2207,6 +2232,7 @@ public class CameraRecorderView extends SurfaceView
 
     /**
      * EasyEncoder的 字节数据回调
+     *
      * @param enc
      * @param data
      * @param start
@@ -2268,13 +2294,14 @@ public class CameraRecorderView extends SurfaceView
 
     /**
      * 播放器播放音乐的 数据解析回调,把数据放入 mAudioTrackBuffer 待onPcmData 方法回调时 混音
-     * @param buf 数据
-     * @param size buf 这个byte数组的大小
+     *
+     * @param buf       数据
+     * @param size      buf 这个byte数组的大小
      * @param timestamp 从0开始 每次递增26
      */
     @Override
     public void onPlayerPCM(byte[] buf, int size, int timestamp/*msec*/) {
-        LogUtil.info(TAG, String.format(Locale.US,
+        LogUtil.info(PCM_TAG, String.format(Locale.US,
                 "audioplayer: onPlayerPCM() %d %d", size, timestamp));
 
         if (!mbRecording || mAudioTrackBuf == null)
@@ -2285,13 +2312,16 @@ public class CameraRecorderView extends SurfaceView
         try {
             if (mAudioTrackBufWrite + size >= AUDIO_PLAYER_BUF_SIZE) {
                 mAudioTrackBufWrite = mAudioTrackBufRead;
-                LogUtil.warn(TAG, "audioplayer onPlayerPCM data overflow, do flush");
+                LogUtil.warn(PCM_TAG, "audioplayer onPlayerPCM data overflow, do flush");
             }
             //将buf 中的数据  拷贝添加到 mAudioTrackBuf
             System.arraycopy(buf, 0, mAudioTrackBuf, mAudioTrackBufWrite, size);
             mAudioTrackBufWrite += size;
-            LogUtil.debug("zxw","mAudioTrackBuf 的大小是"+mAudioTrackBuf.length + "mAudioTrackBufWrite的大小是 "+mAudioTrackBufWrite);
+
             mPlayerBufTimestamp = timestamp;
+            LogUtil.debug(PCM_TAG, "【mAudioTrackBuf】 的大小是 " + mAudioTrackBuf.length +
+                    "  【mAudioTrackBufWrite】的大小是 " + mAudioTrackBufWrite +
+                    "  【mPlyaerBufTimeStamp】 的大小是" + mPlayerBufTimestamp);
         } finally {
             mAudioLock.unlock();
         }
@@ -2320,6 +2350,7 @@ public class CameraRecorderView extends SurfaceView
 
 
     String PCM_TAG = "PCMTAG";//todo remove this
+
     /**
      * 手机麦克风的pcm数据回调
      *
@@ -2331,7 +2362,7 @@ public class CameraRecorderView extends SurfaceView
     @Override
     public void OnPCMData(byte[] data, int start, int byteCount, long timestamp) {
         // TODO Auto-generated method stub
-        LogUtil.debug(PCM_TAG, String.format("Java: raw audio pcm data, start %d, size %d timestamp %d", start, byteCount,timestamp));
+        LogUtil.debug(PCM_TAG, String.format("Java: raw audio pcm data, start %d, size %d timestamp %d", start, byteCount, timestamp));
 
         mAudioLock.lock();
         try {
@@ -2343,37 +2374,37 @@ public class CameraRecorderView extends SurfaceView
                     // 判断录制背景音的时间 与 距离背景音乐开始的 offset
                     //如果是同时播放，这2个应该是一样的，但是存在背景音提前播放，或者背景音中途播放
                     mPlayerTimeOffset = mAudioPlayer.getCurrentPosition() - (int) timestamp / 1000;
-                    LogUtil.error(PCM_TAG, "audioplayer: mPlayerTimeOffset: " + mPlayerTimeOffset +"! 这个应该只调用一次i");
+                    LogUtil.error(PCM_TAG, "audioplayer: mPlayerTimeOffset: " + mPlayerTimeOffset + "! 这个应该只调用一次i");
                 }
                 //还未写入（读取）的背景音
-                int left = mAudioTrackBufWrite - mAudioTrackBufRead;
+                int player_left_size = mAudioTrackBufWrite - mAudioTrackBufRead;
 
                 int buf_size = AUDIO_WEBRTC_BUF_SIZE;
                 if (mbPlayingSong)
                     buf_size = AUDIO_PLAYER_BUF_SIZE;
 
                 if (mAudioTrackBufWrite > buf_size * 3 / 4) { //todo 为什么要做 只读取 3/4 缓冲区数据的操作？？！！
-                    if (left > buf_size * 3 / 4) { // 如果写的已读的 3/4个缓冲区大小
+                    if (player_left_size > buf_size * 3 / 4) { // 如果写的已读的 3/4个缓冲区大小
                         LogUtil.warn(PCM_TAG, String.format(Locale.US,
-                                "drop audio_track data: read_pos %d, write_pos %d, left %d",
-                                mAudioTrackBufRead, mAudioTrackBufWrite, left));
-                        left = buf_size * 3 / 4;  // 如果大于3/4 ，只截取3/4的，其他的丢弃
-                        LogUtil.error(PCM_TAG,"对audio数据做了丢弃的操作！！");
+                                "drop audio_track data: read_pos %d, write_pos %d, player_left_size %d",
+                                mAudioTrackBufRead, mAudioTrackBufWrite, player_left_size));
+                        player_left_size = buf_size * 3 / 4;  // 如果大于3/4 ，只截取3/4的，其他的丢弃
+                        LogUtil.error(PCM_TAG, "对audio数据做了丢弃的操作！！");
                     }
-                    if (left > 0) { //做数据的截取操作？ 有点低效
+                    if (player_left_size > 0) { //做数据的截取操作？ 有点低效
                         //todo to debug
-                        byte[] tmp = new byte[left];
-
-                        System.arraycopy(mAudioTrackBuf, mAudioTrackBufRead, tmp, 0, left);
-                        System.arraycopy(tmp, 0, mAudioTrackBuf, 0, left);
+                        byte[] tmp = new byte[player_left_size];
+                        LogUtil.error(PCM_TAG, "对数据做了截取操作！！");
+                        System.arraycopy(mAudioTrackBuf, mAudioTrackBufRead, tmp, 0, player_left_size);
+                        System.arraycopy(tmp, 0, mAudioTrackBuf, 0, player_left_size);
                     }
                     mAudioTrackBufRead = 0;
-                    mAudioTrackBufWrite = left;
+                    mAudioTrackBufWrite = player_left_size;
                 }
 
                 boolean need_mix = false;
 //                if (mbPeerConnected) {
-//                    if (left >= byteCount)
+//                    if (player_left_size >= byteCount)
 //                        need_mix = true;
 //                }
                 if (mbPlayingSong) { //如果有背景音乐  需要做 背景音 和 视频音的混合
@@ -2381,36 +2412,41 @@ public class CameraRecorderView extends SurfaceView
                     int player_msec = mPlayerBufTimestamp - mPlayerTimeOffset;
                     if (player_msec < 0) {
                         player_msec = 0;
-                        LogUtil.error(TAG,"!!爆炸爆炸！！ 我不相信这个会出现,什么鬼代码");
+                        LogUtil.error(TAG, "!!爆炸爆炸！！ 我不相信这个会出现,什么鬼代码");
                     }
                     int recorder_msec = (int) (timestamp / 1000) - RECORD_LATENCY_MSEC;
                     int one_sec_size = AUDIO_SAMPLE_RATE * AUDIO_CHANNELS * 2/*s16*/;
-                    int cache_msec = left * 1000 / one_sec_size;
-                    int head_msec = player_msec - cache_msec;
-                    if (head_msec < 0)
-                        head_msec = 0;
+                    int player_left_sec = player_left_size * 1000 / one_sec_size;
+                    int player_head_msec = player_msec - player_left_sec;
+                    if (player_head_msec < 0)
+                        player_head_msec = 0;
                     LogUtil.info(PCM_TAG, String.format(Locale.US,
                             "audioplayer: player %d(cache %d, tail %d), recorder %d",
-                            head_msec, cache_msec, player_msec, recorder_msec));
+                            player_head_msec, player_left_sec, player_msec, recorder_msec));
 
-                    if (recorder_msec - head_msec > MIX_THRESHOLD_MSEC) {
+                    if (recorder_msec - player_head_msec > MIX_THRESHOLD_MSEC) {
                         // skip some data
-                        int skip_size = one_sec_size * (recorder_msec - head_msec) / 1000;
+                        int skip_size = one_sec_size * (recorder_msec - player_head_msec) / 1000;
                         // make sure it's aligned to channel data
                         skip_size = (skip_size + 1) / 2 * 2;
-                        if (skip_size > left)
-                            skip_size = left;
+                        if (skip_size > player_left_size)
+                            skip_size = player_left_size;
                         mAudioTrackBufRead += skip_size;
-                        left -= skip_size;
+                        player_left_size -= skip_size;
 
                         LogUtil.info(PCM_TAG, String.format(Locale.US,
-                                "audioplayer: head_msec %d, delta %d, skip_size %d",
-                                head_msec, recorder_msec - head_msec, skip_size));
+                                "audioplayer: player_head_msec %d, delta %d, skip_size %d",
+                                player_head_msec, recorder_msec - player_head_msec, skip_size));
                     }
                     // 前3秒如果不做混音，背景音乐没有混进去 会很小，如果都做混音，会出现噪声（错位），
                     // 这个混音看不懂啊= =
                     //最好在录制后丢弃前3秒的结果
-                    if (head_msec - recorder_msec <= MIX_THRESHOLD_MSEC && left >= byteCount) {
+                    LogUtil.warn(PCM_TAG, "  player_head_msec = " + player_head_msec + "  recorder_mesc =" + recorder_msec + "  player_left_size =" + player_left_size + "  byteCount = " + byteCount);
+                    //player_left_size 在前面是有做过调整的
+                    //判断是否混音 得保证两个 时域信号 的时间差别不是太大，才进行混音，不然会出现 ---
+                    //recorder_msec 每次基本是递增23
+                    //刚开始的 player_head_msec 基本不变 ,一直再等待 recoder_msec符合条件，之后2个数值齐同并进
+                    if (player_head_msec - recorder_msec <= MIX_THRESHOLD_MSEC && player_left_size >= byteCount) {
                         //todo 记得改回去， 原来是true
                         need_mix = true;
                         LogUtil.warn(PCM_TAG, "yes do mix");
@@ -2420,7 +2456,7 @@ public class CameraRecorderView extends SurfaceView
                 }
 
                 if (need_mix) {//这里做了混音？ 但是为什么不做混音也有混音效果，只是声音比较小
-                    LogUtil.debug(PCM_TAG,"正在混音");
+                    LogUtil.debug(PCM_TAG, "正在混音");
                     byte[] audiotrack_data = new byte[byteCount];
                     System.arraycopy(mAudioTrackBuf, mAudioTrackBufRead, audiotrack_data, 0, byteCount);
                     mAudioTrackBufRead += byteCount;
@@ -2443,7 +2479,7 @@ public class CameraRecorderView extends SurfaceView
                 } else {
                     LogUtil.info(PCM_TAG, String.format(Locale.US,
                             "wait for enough audio track data %d.%d",
-                            left, byteCount));
+                            player_left_size, byteCount));
                 }
             }
 
@@ -2552,32 +2588,7 @@ public class CameraRecorderView extends SurfaceView
     }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//----------------                 拍照的相关代码---------------------------------------------------
+    //----------------                 拍照的相关代码---------------------------------------------------
     private Camera.ShutterCallback mShutterCallback = new Camera.ShutterCallback() {
         public void onShutter() {
             /* 按下快门瞬间会调用这里的程序 */

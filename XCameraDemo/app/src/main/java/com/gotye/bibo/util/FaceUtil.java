@@ -33,7 +33,7 @@ public class FaceUtil {
     // Orientation hysteresis amount used in rounding, in degrees
     private static final int ORIENTATION_HYSTERESIS = 5;
 
-    private static final String TAG = "Util";
+    private static final String TAG = "Utils";
 
     /**
      * Gets the current display rotation in angles.

@@ -39,7 +39,7 @@ public class Util {
 	private final static int ONE_MAGABYTE = 1048576;
 	private final static int ONE_KILOBYTE = 1024;
 
-    private final static String TAG = "Util";
+    private final static String TAG = "Utils";
 	private final static String PREF_NAME = "settings";
 
     public static final String player_log_path =
