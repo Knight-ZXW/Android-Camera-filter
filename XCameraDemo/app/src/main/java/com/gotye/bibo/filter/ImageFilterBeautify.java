@@ -29,7 +29,7 @@ public class ImageFilterBeautify extends ImageFilter {
 
     public ImageFilterBeautify(Context applicationContext) {
         super(applicationContext);
-    }
+}
 
     @Override
     public void setTexture(int texture1, int texture2, int texture3) {

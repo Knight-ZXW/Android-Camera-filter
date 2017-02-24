@@ -104,9 +104,20 @@ public class FullFrameRect {
         return GlUtil.createTexture(mFilter.getTextureTarget());
     }
 
+    /**
+     *
+     * @param bitmap
+     * @return
+     */
     public int createTexture(Bitmap bitmap) {
         return GlUtil.createTexture(mFilter.getTextureTarget(), bitmap);
     }
+
+    //-----------gif 做个缓存吧------------------
+    public int createGifTexture(Bitmap bitmap){
+        return -1;
+    }
+    //-----------end------------------------------
 
     public int createTexture(String text, int textsize) {
         return GlUtil.createTextureWithTextContent(text, textsize);

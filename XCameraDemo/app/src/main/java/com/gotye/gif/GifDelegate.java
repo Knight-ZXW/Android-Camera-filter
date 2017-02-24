@@ -1,6 +1,5 @@
 package com.gotye.gif;
 
-import android.content.Context;
 import android.graphics.Bitmap;
 
 import com.gotye.bibo.util.LogUtil;
@@ -15,19 +14,18 @@ import java.io.InputStream;
 
 public class GifDelegate {
 
-    private Context mContext;
     private GifImageDecoder mGifImageDecoder;
     private boolean handled = false;
     private InputStream mInputStream;
-    public GifDelegate(Context context, InputStream inputStream) {
-        mContext = context;
-        mInputStream=  inputStream;
+
+    public GifDelegate(InputStream inputStream) {
+        mInputStream = inputStream;
     }
 
     private Thread handleThread;
 
     public void decoderGif() {
-        handleThread = new Thread(new DecodeGifTask(mContext));
+        handleThread = new Thread(new DecodeGifTask());
         handleThread.run();
         handled = true;
     }
@@ -42,15 +40,13 @@ public class GifDelegate {
         } else {
             mCurrentBitmapIndex = 0;
         }
-        LogUtil.debug("gif","picture index"+mCurrentBitmapIndex);
+        LogUtil.debug("gif", "picture index" + mCurrentBitmapIndex);
         return mGifImageDecoder.getFrame(mCurrentBitmapIndex);
     }
 
     class DecodeGifTask implements Runnable {
-        Context context;
 
-        public DecodeGifTask(Context context) {
-            this.context = context;
+        public DecodeGifTask() {
         }
 
         @Override

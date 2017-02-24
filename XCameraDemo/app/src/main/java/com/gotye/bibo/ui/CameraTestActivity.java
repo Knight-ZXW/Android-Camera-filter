@@ -46,6 +46,7 @@ import android.widget.Toast;
 
 import com.gotye.bibo.R;
 import com.gotye.bibo.adapter.FilterAdapter;
+import com.gotye.bibo.camera.watermark.Watermark;
 import com.gotye.bibo.encode.EncoderConfig;
 import com.gotye.bibo.filter.FilterManager.FilterType;
 import com.gotye.bibo.ui.widget.CameraRecorderView;
@@ -113,7 +114,6 @@ public class CameraTestActivity extends AppCompatActivity
     private boolean mbTextureEncode = true; //默认为纹理编码，只有纹理编码才支持
     private boolean mbTorch = false;
 
-    private boolean mbEnableColorPicker = false;
 
     private int mVideoBitRate = 500 * 1000; // 500k
     private int mVideoFrameRate = 15;
@@ -265,13 +265,7 @@ public class CameraTestActivity extends AppCompatActivity
                         if (mCameraSound != null)
                             mCameraSound.play(MediaActionSound.SHUTTER_CLICK);
                         // watermark
-                        final BitmapFactory.Options options = new BitmapFactory.Options();
-                        options.inScaled = false;    // No pre-scaling
-                        final Bitmap bitmap =
-                                BitmapFactory.decodeResource(getResources(), R.drawable.elephant,
-                                        options);
-                        mView.setWatermark(bitmap, 20, 20, 128, 128);
-//                        mView.takePicture();
+                        //todo 尝试调整watermark的位置
                         return true;
                     }
 
@@ -394,7 +388,7 @@ public class CameraTestActivity extends AppCompatActivity
         mView.setPictureParams(mRootPath + "/pic", this);
 
         try {
-            mView.setGifWatermark(getAssets().open("test2.gif"));
+            mView.setWaterMark(new Watermark(getAssets().open("test2.gif"),200,200,400,400));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -1188,7 +1182,6 @@ public class CameraTestActivity extends AppCompatActivity
         LayoutInflater inflater = LayoutInflater.from(this);
         View view = inflater.inflate(R.layout.all_settings_dialog, null);
         final CheckBox cbEnableAudio = (CheckBox)view.findViewById(R.id.cb_enable_audio);
-        final CheckBox cbEnableColorPicker = (CheckBox)view.findViewById(R.id.cb_enable_color_picker);
         final CheckBox cbTextureEncode = (CheckBox)view.findViewById(R.id.cb_texture_encode);
         final CheckBox cbX264Encode = (CheckBox)view.findViewById(R.id.cb_x264_encode);
         final CheckBox cbX264Rotate = (CheckBox)view.findViewById(R.id.cb_x264_rotate);
@@ -1200,7 +1193,6 @@ public class CameraTestActivity extends AppCompatActivity
 
         // read data
         cbEnableAudio.setChecked(mbEncodeAudio);
-        cbEnableColorPicker.setChecked(mbEnableColorPicker);
         etFrameRate.setText(String.valueOf(mVideoFrameRate));
         cbTextureEncode.setChecked(mbTextureEncode);
         cbX264Encode.setEnabled(!mbTextureEncode);
@@ -1305,7 +1297,6 @@ public class CameraTestActivity extends AppCompatActivity
             public void onClick(DialogInterface dialog, int which) {
                 // save data
                 mbEncodeAudio = cbEnableAudio.isChecked();
-                mbEnableColorPicker = cbEnableColorPicker.isChecked();
                 mVideoFrameRate = Integer.valueOf(etFrameRate.getText().toString());
                 mVideoBitRate = sbBitrate.getProgress() * 1000;
                 mMuxFmt = spinner.getSelectedItemPosition();
@@ -1321,8 +1312,6 @@ public class CameraTestActivity extends AppCompatActivity
 
                 mView.setTextureEncodeMode(mbTextureEncode);
                 updateBeautifyUI();
-
-                mView.setColorPicker(mbEnableColorPicker);
 
                 writeSettings();
 

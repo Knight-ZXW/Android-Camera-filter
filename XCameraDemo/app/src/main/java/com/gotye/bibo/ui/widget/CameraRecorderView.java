@@ -24,7 +24,6 @@ import android.os.Message;
 import android.provider.Settings;
 import android.support.v7.app.AlertDialog;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.OrientationEventListener;
 import android.view.SurfaceHolder;
@@ -35,6 +34,7 @@ import android.widget.Toast;
 import com.gotye.bibo.camera.CameraController;
 import com.gotye.bibo.camera.CameraHelper;
 import com.gotye.bibo.camera.CommonHandlerListener;
+import com.gotye.bibo.camera.watermark.Watermark;
 import com.gotye.bibo.encode.EncoderConfig;
 import com.gotye.bibo.encode.TextureEncoder;
 import com.gotye.bibo.filter.FilterManager;
@@ -50,7 +50,6 @@ import com.gotye.bibo.util.FaceUtil;
 import com.gotye.bibo.util.ImageUtil;
 import com.gotye.bibo.util.LogUtil;
 import com.gotye.bibo.util.Util;
-import com.gotye.gif.GifDelegate;
 import com.gotye.sdk.AudioEncoderInterface;
 import com.gotye.sdk.EasyAudioPlayer;
 import com.gotye.sdk.EncoderInterface;
@@ -62,7 +61,6 @@ import com.gotye.sdk.PPEncoder;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
@@ -234,12 +232,6 @@ public class CameraRecorderView extends SurfaceView
 
     // watermark
     private Bitmap mWatermarkBitmap;
-    //    private String mWatermarkText;
-//    private int mWatermarkTextSize;
-    private int mWatermarkLeft =400;
-    private int mWatermarkTop = 100;
-    private int mWatermarkWidth = 200;
-    private int mWatermarkHeight = 200;
     private FullFrameRect mWatermarkFrame;
     private int mWatermarkTextureId;
     private final float[] IDENTITY_MATRIX = new float[16];
@@ -251,8 +243,6 @@ public class CameraRecorderView extends SurfaceView
     private int mPlayerTimeOffset = -1;
     private float mMixVolume = 1.0f;
 
-    // color picker
-    private boolean mbEnableColorPicker = false;
 
     // stat
     private long mRecordDurationMsec;
@@ -751,64 +741,61 @@ public class CameraRecorderView extends SurfaceView
         return CameraController.getInstance().isTorchOn();
     }
 
-    public void setWatermark(Bitmap bitmap, int left, int top, int width, int height) {
-        LogUtil.info(TAG, String.format(Locale.US,
-                "Java: setWatermark left %d, top %d, %d x %d", left, top, width, height));
-
-        if (!mbTextureEncode) {
-            LogUtil.warn(TAG, "ONLY texture encode mode support watermark");
-            return;
-        }
-
-//        if (mWatermarkText != null) {
-//            mWatermarkText = null;
-//            LogUtil.warn(TAG, "watermark text is DISABLED because of bitmap is set");
+//    public void setWatermark(Bitmap bitmap, int left, int top, int width, int height) {
+//        LogUtil.info(TAG, String.format(Locale.US,
+//                "Java: setWatermark left %d, top %d, %d x %d", left, top, width, height));
+//
+//        if (!mbTextureEncode) {
+//            LogUtil.warn(TAG, "ONLY texture encode mode support watermark");
+//            return;
 //        }
-
-        mWatermarkBitmap = bitmap;
-        mWatermarkLeft = left;
-        mWatermarkTop = top;
-        mWatermarkWidth = width;
-        mWatermarkHeight = height;
-    }
+//
+////        if (mWatermarkText != null) {
+////            mWatermarkText = null;
+////            LogUtil.warn(TAG, "watermark text is DISABLED because of bitmap is set");
+////        }
+//
+//        mWatermarkBitmap = bitmap;
+//        mWatermarkLeft = left;
+//        mWatermarkTop = top;
+//        mWatermarkWidth = width;
+//        mWatermarkHeight = height;
+//    }
 
     //----------------------- 动态gif 水印图的支持------------------------------------------------/
-    private enum WaterMode {
-        STATIC, GIF;
+
+
+    private Watermark mWatermark;
+
+    public void setWaterMark(Watermark waterMark) {
+        this.mWatermark = waterMark;
+        this.mWatermarkBitmap = null;
     }
 
-    private WaterMode mWaterMode;
-    private GifDelegate gifDelegate;
-
-    public void setGifWatermark(InputStream inputStream) {
-        gifDelegate = new GifDelegate(mContext, inputStream);
-        gifDelegate.decoderGif();
-        mWaterMode = WaterMode.GIF;
-    }
     //------------------------ 动态gif 水印图的支持-----------------------------------------------/
 
 
-    public void setText(String text, int textsize, int left, int top, int width, int height) {
-        LogUtil.info(TAG, String.format(Locale.US,
-                "Java: setText %s, left %d, top %d, %d x %d", text, left, top, width, height));
-
-        if (!mbTextureEncode) {
-            LogUtil.warn(TAG, "ONLY texture encode mode support watermark text");
-            return;
-        }
-
-        if (mWatermarkBitmap != null) {
-            mWatermarkBitmap = null;
-            LogUtil.warn(TAG, "watermark bitmap is DISABLED because of text");
-        }
-
-//        mWatermarkText = text;
-//        mWatermarkTextSize = textsize;
-        mWatermarkLeft = left;
-        mWatermarkTop = top;
-        mWatermarkWidth = width;
-        mWatermarkHeight = height;
-    }
+//    public void setText(String text, int textsize, int left, int top, int width, int height) {
+//        LogUtil.info(TAG, String.format(Locale.US,
+//                "Java: setText %s, left %d, top %d, %d x %d", text, left, top, width, height));
+//
+//        if (!mbTextureEncode) {
+//            LogUtil.warn(TAG, "ONLY texture encode mode support watermark text");
+//            return;
+//        }
+//
+//        if (mWatermarkBitmap != null) {
+//            mWatermarkBitmap = null;
+//            LogUtil.warn(TAG, "watermark bitmap is DISABLED because of text");
+//        }
+//
+////        mWatermarkText = text;
+////        mWatermarkTextSize = textsize;
+//        mWatermarkLeft = left;
+//        mWatermarkTop = top;
+//        mWatermarkWidth = width;
+//        mWatermarkHeight = height;
+//    }
 
     public void setZoomIn() {
         CameraController.getInstance().setZoomIn();
@@ -818,9 +805,6 @@ public class CameraRecorderView extends SurfaceView
         CameraController.getInstance().setZoomOut();
     }
 
-    public void setColorPicker(boolean ON) {
-        mbEnableColorPicker = ON;
-    }
 
     public int getOrientation() {
         return mOrientation;
@@ -1722,24 +1706,39 @@ public class CameraRecorderView extends SurfaceView
             mCameraTexture.updateTexImage();
             mCameraTexture.getTransformMatrix(mTmpMatrix);
 
-            if (mWaterMode == WaterMode.GIF) {
-                Log.e("zxw", "设置Gif图");
-                mWatermarkBitmap = gifDelegate.getNextBitmap();
-                LogUtil.debug("GIF",mWatermarkBitmap.getByteCount()+"-"+mWatermarkBitmap.getHeight());
-                mWatermarkFrame = new FullFrameRect(
-                        FilterManager.getImageFilter(FilterType.Normal, mContext));
-                mWatermarkTextureId = mWatermarkFrame.createTexture(mWatermarkBitmap);
-                Matrix.setIdentityM(IDENTITY_MATRIX, 0);
-            } else {//普通模式
-                if ((mWatermarkBitmap != null) &&
-                        mWatermarkFrame == null) {
-                    mWatermarkFrame = new FullFrameRect(
-                            FilterManager.getImageFilter(FilterType.Normal, mContext));
-                    if (mWatermarkBitmap != null)
-                        mWatermarkTextureId = mWatermarkFrame.createTexture(mWatermarkBitmap);
-                    Matrix.setIdentityM(IDENTITY_MATRIX, 0);
+//            if (mWaterMode == WaterMode.GIF) {
+//                Log.e("zxw", "设置Gif图");
+//                mWatermarkBitmap = gifDelegate.getNextBitmap();
+//                LogUtil.debug("GIF", mWatermarkBitmap.getByteCount() + "-" + mWatermarkBitmap.getHeight());
+//                mWatermarkFrame = new FullFrameRect(
+//                        FilterManager.getImageFilter(FilterType.Normal, mContext));
+//                mWatermarkTextureId = mWatermarkFrame.createTexture(mWatermarkBitmap);
+//                Matrix.setIdentityM(IDENTITY_MATRIX, 0);
+//            } else {//普通模式
+//                if ((mWatermarkBitmap != null) &&
+//                        mWatermarkFrame == null) {
+//                    mWatermarkFrame = new FullFrameRect(
+//                            FilterManager.getImageFilter(FilterType.Normal, mContext));
+//                    if (mWatermarkBitmap != null)
+//                        mWatermarkTextureId = mWatermarkFrame.createTexture(mWatermarkBitmap);
+//                    Matrix.setIdentityM(IDENTITY_MATRIX, 0);
+//                }
+//            }
+
+            if (mWatermark != null) {
+
+                mWatermarkBitmap = mWatermark.getNextBitmap();
+                LogUtil.debug("GIF", mWatermarkBitmap.getByteCount() + "-" + mWatermarkBitmap.getHeight());
+                if (mWatermarkFrame == null) {
+                    mWatermarkFrame = new FullFrameRect(FilterManager.getImageFilter(FilterType.Normal, mContext));
                 }
+                if (mWatermarkBitmap != null) {
+                    mWatermarkTextureId = mWatermarkFrame.createTexture(mWatermarkBitmap);
+                    LogUtil.debug("GIF","又创建GIF");
+                }
+                Matrix.setIdentityM(IDENTITY_MATRIX, 0);
             }
+
 
             GLES20.glClearColor(0f, 0f, 0f, 1f);
             GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
@@ -1755,27 +1754,13 @@ public class CameraRecorderView extends SurfaceView
             setViewport(mSurfaceWidth, mSurfaceHeight);
             mFullFrameBlit.drawFrame(texturedId, mTmpMatrix);
 
-            if (mbEnableColorPicker) {
-                IntBuffer buffer = IntBuffer.allocate(1);
-                GLES20.glReadPixels(mPreviewWidth / 2, mPreviewHeight / 2, 1, 1,
-                        GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, buffer);
-                buffer.rewind();
-                int val = buffer.get();
-                int r = 0xff & val;
-                int g = (0xff00 & val) >> 8;
-                int b = (0xff0000 & val) >> 16;
-                //LogUtil.info(TAG, String.format(Locale.US,
-                //        "color: r: %d, g: %d, b: %d", r, g, b));
-            }
-
-
             if (mWatermarkFrame != null) {
-                float scaleX = (float) mWatermarkWidth / (float) mIncomingWidth * mMvpScaleX;
-                float scaleY = (float) mWatermarkHeight / (float) mIncomingHeight * mMvpScaleY;
+                float scaleX = (float) mWatermark.getWidth() / (float) mIncomingWidth * mMvpScaleX;
+                float scaleY = (float) mWatermark.getHeight() / (float) mIncomingHeight * mMvpScaleY;
                 float translateX = -(mMvpScaleX - scaleX) +
-                        (float) mWatermarkLeft * 2f * mMvpScaleX / (float) mIncomingWidth;
+                        (float) mWatermark.getLeft() * 2f * mMvpScaleX / (float) mIncomingWidth;
                 float translateY = mMvpScaleY - scaleY -
-                        (float) mWatermarkTop * 2f * mMvpScaleY / (float) mIncomingHeight;
+                        (float) mWatermark.getTop() * 2f * mMvpScaleY / (float) mIncomingHeight;
                 /*LogUtil.info(TAG, String.format("scaleX %.3f, scaleY %.3f, " +
                         "translateX %.3f, translateY %.3f || " +
                         "mMvpScaleX %.3f, mMvpScaleY %.3f",
@@ -1785,6 +1770,8 @@ public class CameraRecorderView extends SurfaceView
                 mWatermarkFrame.scaleMVPMatrix(scaleX, -scaleY);
                 mWatermarkFrame.drawFrame(mWatermarkTextureId, IDENTITY_MATRIX);
             }
+
+
             drawExtra(mPrevFrameCount, mSurfaceWidth, mSurfaceHeight);
             long startMsec = System.currentTimeMillis();
             mDisplaySurface.swapBuffers();
@@ -1885,12 +1872,12 @@ public class CameraRecorderView extends SurfaceView
 
 
                 if (mWatermarkFrame != null) {
-                    float scaleX = (float) mWatermarkWidth / (float) mIncomingWidth;
-                    float scaleY = (float) mWatermarkHeight / (float) mIncomingHeight;
+                    float scaleX = (float) mWatermark.getWidth() / (float) mIncomingWidth;
+                    float scaleY = (float) mWatermark.getHeight() / (float) mIncomingHeight;
                     float translateX = -(1f - scaleX) +
-                            (float) mWatermarkLeft * 2f / (float) mIncomingWidth;
+                            (float) mWatermark.getLeft() * 2f / (float) mIncomingWidth;
                     float translateY = 1f - scaleY -
-                            (float) mWatermarkTop * 2f / (float) mIncomingHeight;
+                            (float) mWatermark.getTop() * 2f / (float) mIncomingHeight;
                     /*LogUtil.info(TAG, String.format("scaleX %.3f, scaleY %.3f, " +
                         "translateX %.3f, translateY %.3f",
                         scaleX, scaleY, translateX, translateY));*/
