@@ -2,8 +2,6 @@ package com.gotye.gif;
 
 import android.graphics.Bitmap;
 
-import com.gotye.bibo.util.LogUtil;
-
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -15,7 +13,7 @@ import java.io.InputStream;
 public class GifDelegate {
 
     private GifImageDecoder mGifImageDecoder;
-    private boolean handled = false;
+    public boolean loadFinish = false;
     private InputStream mInputStream;
 
     public GifDelegate(InputStream inputStream) {
@@ -27,34 +25,36 @@ public class GifDelegate {
     public void decoderGif() {
         handleThread = new Thread(new DecodeGifTask());
         handleThread.run();
-        handled = true;
     }
 
-    int mCurrentBitmapIndex;
-    int mBitmapsSize;
+    int mCurrentBitmapIndex =0;
+    int mBitmapsCount;
 
     //注意Bitmap 的内存泄漏问题
+    //换成迭代器的实现更好点
     public Bitmap getNextBitmap() {
-        if (mCurrentBitmapIndex <= mBitmapsSize) {
+        if (mCurrentBitmapIndex <= mBitmapsCount) {
             mCurrentBitmapIndex++;
         } else {
             mCurrentBitmapIndex = 0;
         }
-        LogUtil.debug("gif", "picture index" + mCurrentBitmapIndex);
         return mGifImageDecoder.getFrame(mCurrentBitmapIndex);
     }
 
+    public int getBitmapLength(){
+        if (loadFinish)return mBitmapsCount;
+        else return -1;//还没加载完
+    }
+
+
     class DecodeGifTask implements Runnable {
-
-        public DecodeGifTask() {
-        }
-
         @Override
         public void run() {
             mGifImageDecoder = new GifImageDecoder();
             try {
                 mGifImageDecoder.read(mInputStream);
-                mBitmapsSize = mGifImageDecoder.mFrameCount;
+                mBitmapsCount = mGifImageDecoder.mFrameCount;
+                loadFinish = true;
             } catch (IOException e) {
                 e.printStackTrace();
             }

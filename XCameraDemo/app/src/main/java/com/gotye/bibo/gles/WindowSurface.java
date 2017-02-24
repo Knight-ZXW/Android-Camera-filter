@@ -50,6 +50,7 @@ public class WindowSurface extends EglSurfaceBase {
         super(eglCore);
         createWindowSurface(surfaceTexture);
     }
+    public boolean released;
 
     /**
      * Releases any resources associated with the EGL surface (and, if configured to do so,
@@ -62,6 +63,7 @@ public class WindowSurface extends EglSurfaceBase {
         if (mSurface != null) {
             if (mReleaseSurface) {
                 mSurface.release();
+                released = true;
             }
             mSurface = null;
         }

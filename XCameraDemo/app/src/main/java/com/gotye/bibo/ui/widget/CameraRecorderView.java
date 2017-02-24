@@ -34,7 +34,9 @@ import android.widget.Toast;
 import com.gotye.bibo.camera.CameraController;
 import com.gotye.bibo.camera.CameraHelper;
 import com.gotye.bibo.camera.CommonHandlerListener;
-import com.gotye.bibo.camera.watermark.Watermark;
+import com.gotye.bibo.camera.watermark.GifWaterFrameHolder;
+import com.gotye.bibo.camera.watermark.NormalWaterFrameHolder;
+import com.gotye.bibo.camera.watermark.WaterFrameHolder;
 import com.gotye.bibo.encode.EncoderConfig;
 import com.gotye.bibo.encode.TextureEncoder;
 import com.gotye.bibo.filter.FilterManager;
@@ -61,6 +63,7 @@ import com.gotye.sdk.PPEncoder;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
@@ -105,6 +108,7 @@ public class CameraRecorderView extends SurfaceView
     public static final String[] DISPLAY_MODE_DESC = new String[]{
             "自适应", "铺满屏幕", "放大裁切", "原始大小"
     };
+    private static final String WATERFRAME_TAG = "waterframe";
 
     private int mDisplayMode = SCREEN_FIT;
 
@@ -230,10 +234,18 @@ public class CameraRecorderView extends SurfaceView
     private int mAudioTrackBufRead; //已经读的 作为操作 audiotrackbuf的一个 index
     private int mAudioTrackBufWrite; //写入的
 
-    // watermark
-    private Bitmap mWatermarkBitmap;
-    private FullFrameRect mWatermarkFrame;
-    private int mWatermarkTextureId;
+    //-------------water-----------------------------------------------------------/
+    private ArrayList<WaterFrameHolder>  waterFrameHolders = new ArrayList<>();
+    public void setLogo(Bitmap bitmap, int width, int height, int left, int top) {
+        NormalWaterFrameHolder mLogoFrameHolder = new NormalWaterFrameHolder(bitmap, getContext(), width, height, left, top);
+        waterFrameHolders.add(mLogoFrameHolder);
+    }
+
+    public void addBoomWater(InputStream inputStream,int width,int height,int left,int top){
+        waterFrameHolders.add(new GifWaterFrameHolder(inputStream,getContext(),width,height,left,top));
+    }
+    //-------------water------------------end-----------------------------------------/
+
     private final float[] IDENTITY_MATRIX = new float[16];
 
     // play song
@@ -260,6 +272,8 @@ public class CameraRecorderView extends SurfaceView
     private long mAudioClockUsec;
     private int mAVDiffMsec;
     private int mLatencyMsec;
+
+    private static final String GLTAG = "GLTAG";
 
     public CameraRecorderView(Context context) {
         super(context);
@@ -322,7 +336,7 @@ public class CameraRecorderView extends SurfaceView
                 mbSetupWhenStart = false;
             } else {
                 mbSetupWhenStart = true;
-                LogUtil.info(TAG, "Java: camera will start preview when surface was created");
+                LogUtil.info(GLTAG, "Java: camera will start preview when surface was created");
             }
         }
 
@@ -764,13 +778,6 @@ public class CameraRecorderView extends SurfaceView
 
     //----------------------- 动态gif 水印图的支持------------------------------------------------/
 
-
-    private Watermark mWatermark;
-
-    public void setWaterMark(Watermark waterMark) {
-        this.mWatermark = waterMark;
-        this.mWatermarkBitmap = null;
-    }
 
     //------------------------ 动态gif 水印图的支持-----------------------------------------------/
 
@@ -1394,6 +1401,7 @@ public class CameraRecorderView extends SurfaceView
     public void onResume() {
         if (mOrientationListener != null)
             mOrientationListener.enable();
+        //判断如果是重新resume的话，需要重新做初始化
 
     }
 
@@ -1405,11 +1413,11 @@ public class CameraRecorderView extends SurfaceView
         if (mbRecording && !mbTextureEncode)
             stopRecording();
 
-        if (mDisplaySurface != null) {
-            mDisplaySurface.makeCurrent();
-            mDisplaySurface.release();
-            mDisplaySurface = null;
-        }
+//        if (mDisplaySurface != null) {
+//            mDisplaySurface.makeCurrent();
+//            mDisplaySurface.release();
+//            mDisplaySurface = null;
+//        }
 
         if (mOrientationListener != null)
             mOrientationListener.disable();
@@ -1444,10 +1452,7 @@ public class CameraRecorderView extends SurfaceView
                 mFullFrameBlit.release(true);
                 mFullFrameBlit = null;
             }
-            if (mWatermarkFrame != null) {
-                mWatermarkFrame.release(true);
-                mWatermarkFrame = null;
-            }
+
             if (mEglCore != null) {
                 mEglCore.release();
                 mEglCore = null;
@@ -1681,14 +1686,14 @@ public class CameraRecorderView extends SurfaceView
      */
     @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
     private void drawFrame() {
-        if (Constants.VERBOSE) LogUtil.debug(TAG, "Java: drawFrame()");
+        if (Constants.VERBOSE) LogUtil.debug(GLTAG, "Java: drawFrame()");
         if (mEglCore == null) {
             LogUtil.debug(TAG, "Skipping drawFrame after shutdown");
             return;
         }
 
         long start_drawFrame = System.currentTimeMillis();
-        int texturedId = mTextureId;
+        int texturedId = mTextureId;//基本上为1，
 
         if (mDisplaySurface != null) {
             // Latch the next frame from the camera.
@@ -1703,8 +1708,8 @@ public class CameraRecorderView extends SurfaceView
                 mInstantAvgSwapBuffersMsec = mAvgSwapBuffersMsec = 0;
                 mInstantAvgDrawFrameMsec = mAvgDrawFrameMsec = 0;
             }
-            mCameraTexture.updateTexImage();
-            mCameraTexture.getTransformMatrix(mTmpMatrix);
+            mCameraTexture.updateTexImage();//Update the texture image to the most recent frame from the image stream
+            mCameraTexture.getTransformMatrix(mTmpMatrix);//把上次的变化矩阵保存到TmpMatrix中
 
 //            if (mWaterMode == WaterMode.GIF) {
 //                Log.e("zxw", "设置Gif图");
@@ -1725,56 +1730,45 @@ public class CameraRecorderView extends SurfaceView
 //                }
 //            }
 
-            if (mWatermark != null) {
+//            if (mWatermark != null) {
+//
+//                mWatermarkBitmap = mWatermark.getNextBitmap();
+//                LogUtil.debug(GLTAG, mWatermarkBitmap.getByteCount() + "-" + mWatermarkBitmap.getHeight());
+//                if (mWatermarkFrame == null) {
+//                    mWatermarkFrame = new FullFrameRect(FilterManager.getImageFilter(FilterType.Normal, mContext));
+//                }
+//                if (mWatermarkBitmap != null) {
+//                    mWatermarkTextureId = mWatermarkFrame.createTexture(mWatermarkBitmap);
+//                    //这里可以同时创建 logo 的texture吗？？
+//                    LogUtil.debug(GLTAG, "又创建GIF");
+//                }
+//                Matrix.setIdentityM(IDENTITY_MATRIX, 0);//对角线是1的矩阵
+//            }
 
-                mWatermarkBitmap = mWatermark.getNextBitmap();
-                LogUtil.debug("GIF", mWatermarkBitmap.getByteCount() + "-" + mWatermarkBitmap.getHeight());
-                if (mWatermarkFrame == null) {
-                    mWatermarkFrame = new FullFrameRect(FilterManager.getImageFilter(FilterType.Normal, mContext));
-                }
-                if (mWatermarkBitmap != null) {
-                    mWatermarkTextureId = mWatermarkFrame.createTexture(mWatermarkBitmap);
-                    LogUtil.debug("GIF","又创建GIF");
-                }
-                Matrix.setIdentityM(IDENTITY_MATRIX, 0);
-            }
-
-
+            //清楚上次的画面
             GLES20.glClearColor(0f, 0f, 0f, 1f);
             GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
-            if (mWatermarkFrame != null) {
-                GLES20.glEnable(GLES20.GL_BLEND);
+
+            if (waterFrameHolders != null) {
+                GLES20.glEnable(GLES20.GL_BLEND);//支持混合
                 GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
             }
 
             // Fill the SurfaceView with it.
             setCameraPreviewSize(mPreviewWidth, mPreviewHeight);
-            mFullFrameBlit.getFilter().setSurfaceSize(mSurfaceWidth, mSurfaceHeight);
-            mFullFrameBlit.getFilter().setTextureSize(mPreviewWidth, mPreviewHeight);
+
+            mFullFrameBlit.getFilter().setSurfaceSize(mSurfaceWidth, mSurfaceHeight);//如果是没有滤镜，则说明都没做
+            mFullFrameBlit.getFilter().setTextureSize(mPreviewWidth, mPreviewHeight);//同上
             setViewport(mSurfaceWidth, mSurfaceHeight);
+
             mFullFrameBlit.drawFrame(texturedId, mTmpMatrix);
-
-            if (mWatermarkFrame != null) {
-                float scaleX = (float) mWatermark.getWidth() / (float) mIncomingWidth * mMvpScaleX;
-                float scaleY = (float) mWatermark.getHeight() / (float) mIncomingHeight * mMvpScaleY;
-                float translateX = -(mMvpScaleX - scaleX) +
-                        (float) mWatermark.getLeft() * 2f * mMvpScaleX / (float) mIncomingWidth;
-                float translateY = mMvpScaleY - scaleY -
-                        (float) mWatermark.getTop() * 2f * mMvpScaleY / (float) mIncomingHeight;
-                /*LogUtil.info(TAG, String.format("scaleX %.3f, scaleY %.3f, " +
-                        "translateX %.3f, translateY %.3f || " +
-                        "mMvpScaleX %.3f, mMvpScaleY %.3f",
-                        scaleX, scaleY, translateX, translateY, mMvpScaleX, mMvpScaleY));*/
-                mWatermarkFrame.resetMVPMatrix();
-                mWatermarkFrame.translateMVPMatrix(translateX, translateY);
-                mWatermarkFrame.scaleMVPMatrix(scaleX, -scaleY);
-                mWatermarkFrame.drawFrame(mWatermarkTextureId, IDENTITY_MATRIX);
-            }
-
+            drawWaterFrames();
 
             drawExtra(mPrevFrameCount, mSurfaceWidth, mSurfaceHeight);
+            // 这个时候画面已经显示出来了
+
             long startMsec = System.currentTimeMillis();
-            mDisplaySurface.swapBuffers();
+            mDisplaySurface.swapBuffers();// use this to publish current frame
             int used = (int) (System.currentTimeMillis() - startMsec);
             if (!mbRecording) {
                 mInstantAvgSwapBuffersMsec = (mInstantAvgSwapBuffersMsec * 4 + used) / 5;
@@ -1787,27 +1781,6 @@ public class CameraRecorderView extends SurfaceView
                 mPrevFps = (double) (mPrevFrameCount * 1000) /
                         (double) (System.currentTimeMillis() - mStartPreviewMsec);
             }
-
-            // get texture
-            /*
-            if (mTexBuffer == null) {
-                mTexBuffer = IntBuffer.allocate(mIncomingWidth * mIncomingHeight);
-            }
-            mFrameBufferObject.bindTexture(mBufferTexID);
-            mFullFrameBlit.getFilter().setSurfaceSize(mIncomingWidth, mIncomingHeight);
-            mFullFrameBlit.getFilter().setTextureSize(mPreviewWidth, mPreviewHeight);
-            mFullFrameBlit.getFilter().setFrameBuffer(mFrameBufferObject.getFrameBufferId());
-            mFullFrameBlit.resetMVPMatrix();
-            mFullFrameBlit.scaleMVPMatrix(1f, -1f); // fix bitmap upside down
-            setViewport(mIncomingWidth, mIncomingHeight);
-            mFullFrameBlit.drawFrame(mTextureId, mTmpMatrix);
-            //mFullFrameBlit.getFilter().setFrameBuffer(0); // reset to normal
-            GLES20.glReadPixels(0, 0, mIncomingWidth, mIncomingHeight,
-                    GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, mTexBuffer);
-            // Switch back to the default framebuffer.
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
-            GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
-            */
 
             // take picture
             texturedPictureBitmap();
@@ -1840,7 +1813,7 @@ public class CameraRecorderView extends SurfaceView
                 }
             }
 
-            if (bEncode) {
+            if (bEncode) { //如果正在录制
                 mEncoderSurface.makeCurrent();
                 if (mDisplaySurface == null) {
                     // background encode mode
@@ -1854,10 +1827,6 @@ public class CameraRecorderView extends SurfaceView
 
                 GLES20.glClearColor(0f, 0f, 0f, 1f);
                 GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
-                if (mWatermarkFrame != null) {
-                    GLES20.glEnable(GLES20.GL_BLEND);
-                    GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
-                }
 
                 // fix rotate camera problem when recording
                 // mEncWidth and mEncHeight won't change when recording
@@ -1871,22 +1840,8 @@ public class CameraRecorderView extends SurfaceView
                 mFullFrameBlit.drawFrame(texturedId/*mTextureId*/, mTmpMatrix);
 
 
-                if (mWatermarkFrame != null) {
-                    float scaleX = (float) mWatermark.getWidth() / (float) mIncomingWidth;
-                    float scaleY = (float) mWatermark.getHeight() / (float) mIncomingHeight;
-                    float translateX = -(1f - scaleX) +
-                            (float) mWatermark.getLeft() * 2f / (float) mIncomingWidth;
-                    float translateY = 1f - scaleY -
-                            (float) mWatermark.getTop() * 2f / (float) mIncomingHeight;
-                    /*LogUtil.info(TAG, String.format("scaleX %.3f, scaleY %.3f, " +
-                        "translateX %.3f, translateY %.3f",
-                        scaleX, scaleY, translateX, translateY));*/
-                    mWatermarkFrame.resetMVPMatrix();
-                    mWatermarkFrame.translateMVPMatrix(translateX, translateY);
-                    mWatermarkFrame.scaleMVPMatrix(scaleX, -scaleY);
-                    mWatermarkFrame.drawFrame(mWatermarkTextureId, IDENTITY_MATRIX);
-                }
-                drawExtra(mEncFrameCount, mEncWidth, mEncHeight);
+                drawWaterFrames();
+                drawExtra(mEncFrameCount, mEncWidth, mEncHeight);// push 到对应的 encoder
 
                 mVideoTextureEncoder.frameAvailableSoon();
                 mEncoderSurface.setPresentationTime(mCameraTexture.getTimestamp() - mSurfaceTextureStartTime);
@@ -1905,6 +1860,19 @@ public class CameraRecorderView extends SurfaceView
         mInstantAvgDrawFrameMsec = (mInstantAvgDrawFrameMsec * 4 + encUsed) / 5;
         if (!mbRecording && mPrevFrameCount % 10 == 0)
             mAvgDrawFrameMsec = mInstantAvgDrawFrameMsec;
+    }
+
+    private void drawWaterFrames() {
+        for (WaterFrameHolder waterFrameHolder:waterFrameHolders){
+            //todo  这里根据未来线上的实际情况 看是不是可以优化!!
+            float scaleX =  waterFrameHolder.getWidth() / (float) mIncomingWidth * mMvpScaleX;
+            float scaleY =  waterFrameHolder.getHeight() / (float) mIncomingHeight * mMvpScaleY;
+            float translateX = -(mMvpScaleX - scaleX) +
+                     waterFrameHolder.getLeft() * 2f * mMvpScaleX / (float) mIncomingWidth;
+            float translateY = mMvpScaleY - scaleY -
+                    waterFrameHolder.getTop() * 2f * mMvpScaleY / (float) mIncomingHeight;
+            waterFrameHolder.drawFrame(scaleX, scaleY, translateX, translateY);
+        }
     }
 
 
@@ -2505,7 +2473,7 @@ public class CameraRecorderView extends SurfaceView
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
-        LogUtil.info(TAG, "Java: surfaceCreated()");
+        LogUtil.info(GLTAG, "Java: surfaceCreated()");
         mbSurfaceCreated = true;
 
         if (mbTextureEncode) {
@@ -2519,6 +2487,7 @@ public class CameraRecorderView extends SurfaceView
             // use for video, use the same EGL context.
             if (mEglCore == null) {
                 mEglCore = new EglCore(null, EglCore.FLAG_RECORDABLE);
+                LogUtil.info(GLTAG, "Crate EglCore");
             }
             mDisplaySurface = new WindowSurface(mEglCore, this.getHolder().getSurface(), false);
             mDisplaySurface.makeCurrent();
@@ -2526,9 +2495,13 @@ public class CameraRecorderView extends SurfaceView
             if (mFullFrameBlit == null) {
                 mFullFrameBlit = new FullFrameRect(
                         FilterManager.getCameraFilter(mCurrentFilterType, mContext));
+                LogUtil.info(GLTAG, "Crate mFullFremaRect");
                 mTextureId = mFullFrameBlit.createTextureObject();
+                LogUtil.info(GLTAG, "调用 mFullFrameBlit.createTextureObject() 生成 textureId" + mTextureId);
+
                 //mTextureId = GlUtil.createTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
                 mCameraTexture = new SurfaceTexture(mTextureId);
+                LogUtil.info(GLTAG, "根据刚才的textureId 生成 camera的 SurfaceTexture");
                 mCameraTexture.setOnFrameAvailableListener(this);
 
                 Matrix.setIdentityM(mTmpMatrix, 0);
@@ -2548,7 +2521,7 @@ public class CameraRecorderView extends SurfaceView
         if (mbSetupWhenStart) {
             mCameraTexture = new SurfaceTexture(mTextureId);
             mCameraTexture.setOnFrameAvailableListener(this);
-
+            LogUtil.debug(GLTAG, "判断setupWhenStart是true 重新生成cameraTexture,并发送 SETUP_CAMERA 消息");
             if (mCameraHandler != null) {
                 mCameraHandler.sendMessage(mCameraHandler.obtainMessage(
                         CameraHandler.SETUP_CAMERA));

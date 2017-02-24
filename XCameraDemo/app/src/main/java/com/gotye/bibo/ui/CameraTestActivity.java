@@ -46,7 +46,6 @@ import android.widget.Toast;
 
 import com.gotye.bibo.R;
 import com.gotye.bibo.adapter.FilterAdapter;
-import com.gotye.bibo.camera.watermark.Watermark;
 import com.gotye.bibo.encode.EncoderConfig;
 import com.gotye.bibo.filter.FilterManager.FilterType;
 import com.gotye.bibo.ui.widget.CameraRecorderView;
@@ -388,10 +387,14 @@ public class CameraTestActivity extends AppCompatActivity
         mView.setPictureParams(mRootPath + "/pic", this);
 
         try {
-            mView.setWaterMark(new Watermark(getAssets().open("test2.gif"),200,200,400,400));
+            InputStream gifInput = getAssets().open("test2.gif");
+            mView.addBoomWater(gifInput,200,200,400,400);
         } catch (IOException e) {
             e.printStackTrace();
         }
+        // set logo
+        mView.setLogo(BitmapFactory.decodeResource(getResources(),R.drawable.star),200,200,300,400);
+
     }
 
     @Override
@@ -448,8 +451,10 @@ public class CameraTestActivity extends AppCompatActivity
             mHandler.removeMessages(MainHandler.MSG_UPDATE_DURATION);
 
         mHandler.removeMessages(MainHandler.MSG_UPDATE_INFO);
-
+        //暂停录制
+        mRecording = false;
         mView.onPause();
+
         writeSettings();
     }
 
