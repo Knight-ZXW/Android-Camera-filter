@@ -426,7 +426,8 @@ public class CameraTestActivity extends AppCompatActivity
                 return;
             }
 
-            stop_rec(true);
+            stop_rec(false);
+            updateButton();
             return;
         }
 
@@ -449,10 +450,10 @@ public class CameraTestActivity extends AppCompatActivity
 
         if (mRecording)
             mHandler.removeMessages(MainHandler.MSG_UPDATE_DURATION);
-
         mHandler.removeMessages(MainHandler.MSG_UPDATE_INFO);
         //暂停录制
-        mRecording = false;
+
+        stop_rec(true);
         mView.onPause();
 
         writeSettings();
@@ -495,21 +496,19 @@ public class CameraTestActivity extends AppCompatActivity
                 "融合", "柔光", "曲线", "线条",
                 "凸起", "收缩", "伸展",
                 "字符1", "字符2",
-                "色度键1", "色度键2"};
+                "色度键1", "色度键2","Sketch"};
         String []filters_name = {"Normal", "White", "Gray",
                 "AllinOne", "BeautyFaceWu",
                 "FaceUnity",
                 "Cartoon", "Toon", "SmoothToon", "BritneyCartoon", "Cartoonish",
-                "GaussianBlur", "BilateralBlur",
-                "MosaicBlur", "GaussianSelectiveBlur",
-                 "CannyEdgeDetection", "Sharpen",
+                "GaussianBlur", "BilateralBlur", "MosaicBlur", "GaussianSelectiveBlur", "CannyEdgeDetection", "Sharpen",
                 "Cracked", "Legofield", "BasicDeform",
                 "EdgeDetectiondFdx", "Pixelize", "NoiseContour",
                 "Blend", "SoftLight", "ToneCurve",
                 "Lofify",
                 "BulgeDistortion", "PinchDistortion", "StretchDistortion",
                 "AsciiArt", "AsciiArt2",
-                "ChromaKey", "ChromaKeyBlend"};
+                "ChromaKey", "ChromaKeyBlend","Sketch"};
         int []filters_pic = {
                 R.drawable.filter_thumb_original,
                 R.drawable.filter_thumb_beautify,
@@ -544,7 +543,8 @@ public class CameraTestActivity extends AppCompatActivity
                 R.drawable.filter_thumb_asciiart,
                 R.drawable.filter_thumb_asciiart,
                 R.drawable.filter_thumb_original, // 色度键
-                R.drawable.filter_thumb_original
+                R.drawable.filter_thumb_original,
+                R.drawable.filter_thumb_original,
         };
         List<Map<String, Object>> filterList = new ArrayList<>();
         for (int i=0;i<filters_title.length;i++) {

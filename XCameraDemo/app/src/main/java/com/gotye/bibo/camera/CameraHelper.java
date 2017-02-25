@@ -418,4 +418,21 @@ public class CameraHelper {
         }
         return false;
     }
+
+    /**
+     * 闪光灯是否开启
+     * @param camera
+     * @return
+     */
+    public static boolean isTouchOn(Camera camera){
+        if (camera != null) {
+            Camera.Parameters parameters = camera.getParameters();
+            if (parameters.getFlashMode() == null)
+                return false;
+
+            return parameters.getFlashMode()
+                    .equals(Camera.Parameters.FLASH_MODE_TORCH);
+        }
+        return false;
+    }
 }

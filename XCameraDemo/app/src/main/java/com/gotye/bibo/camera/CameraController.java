@@ -146,7 +146,6 @@ public class CameraController
             }
 
             try {
-
                 findCameraSupportValue(DEFAULT_PICTURE_WIDTH, DEFAULT_PICTURE_HEIGHT);
                 return true;
             } catch (Exception e) {
@@ -272,16 +271,7 @@ public class CameraController
                     LogUtil.info(TAG, String.format(Locale.US,
                             "Java: supported preview range %d - %d", r[0], r[1]));
                 }
-                //TAG 在这里设置了 预览的帧数
-//                if (setRange) {
-//                    for (int[] r : range) {
-//                        if (r[0] <= 15000 && r[1] >= 15000) {
-//                            cp.setPreviewFpsRange(15000, 15000);
-//                            LogUtil.info(TAG, "Java: set preview fps range 15");
-//                            break;
-//                        }
-//                    }
-//                }
+
 
                 //我重新设置 fps，我想取最大  by zhuoxiuwu
                 //todo 我可以设置一个表示 帧数策略，来让外部选择 by zhuoxiuwu
@@ -499,21 +489,12 @@ public class CameraController
     }
 
     public boolean isTorchOn() {
-        if (mCamera != null) {
-            Camera.Parameters parameters = mCamera.getParameters();
-            if (parameters.getFlashMode() == null)
-                return false;
-
-            return parameters.getFlashMode()
-                    .equals(Camera.Parameters.FLASH_MODE_TORCH);
-        }
-
-        return false;
+        return CameraHelper.isTouchOn(mCamera);
     }
 
 
     // todo 做一个视频的连续对焦 by zhuoxiuwu
-    public boolean startAutoFoucusForVideo(Camera.AutoFocusCallback autoFocusCallback){
+    public boolean startAutoFocusForVideo(Camera.AutoFocusCallback autoFocusCallback){
         return true;
     }
     public boolean startAutoFocus(Camera.AutoFocusCallback autoFocusCallback) {
@@ -596,6 +577,8 @@ public class CameraController
             Collections.sort(cs, new CameraPictureSizeComparator());
             for (Camera.Size size : cs) {
                 if (size.width <= desiredWidth && size.height <= desiredHeight) {
+                    if (size.height>1920|| size.width>1080) //不对1920 x1080以上的做支持，因为在测试总发现在1920想080以上会奔溃
+                        continue;
                     mCameraPictureSize = size;
                     LogUtil.info(TAG, String.format(Locale.US,
                             "picture size set to %d x %d",

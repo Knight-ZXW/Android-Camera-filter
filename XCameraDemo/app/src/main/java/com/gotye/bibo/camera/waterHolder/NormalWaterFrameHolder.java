@@ -1,4 +1,4 @@
-package com.gotye.bibo.camera.watermark;
+package com.gotye.bibo.camera.waterHolder;
 
 import android.content.Context;
 import android.graphics.Bitmap;

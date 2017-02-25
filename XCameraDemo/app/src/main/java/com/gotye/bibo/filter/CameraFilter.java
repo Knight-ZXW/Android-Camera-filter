@@ -20,7 +20,6 @@ public class CameraFilter extends AbstractFilter implements IFilter {
 
     protected int mIncomingWidth, mIncomingHeight;
     protected int mSurfaceWidth, mSurfaceHeight;
-
     public CameraFilter(Context applicationContext) {
         mProgramHandle = createProgram(applicationContext);
         if (mProgramHandle == 0) {
@@ -161,24 +160,24 @@ public class CameraFilter extends AbstractFilter implements IFilter {
         mProgramHandle = -1;
     }
 
-    /////////// Set Runnable ////////////
-    //protected void addRunnableOnDraw(final Runnable runnable) {
-    //    synchronized (mRunnableOnDraw) {
-    //        mRunnableOnDraw.addLast(runnable);
-    //    }
-    //}
-    //
-    //protected void setFloat(final int location, final float floatValue) {
-    //    addRunnableOnDraw(new Runnable() {
-    //        @Override public void run() {
-    //            GLES20.glUniform1f(location, floatValue);
-    //        }
-    //    });
-    //}
-    //
-    //@Override protected void runningOnDraw() {
-    //    while (!mRunnableOnDraw.isEmpty()) {
-    //        mRunnableOnDraw.removeFirst().run();
-    //    }
-    //}
+    ///////// Set Runnable ////////////
+//    protected void addRunnableOnDraw(final Runnable runnable) {
+//        synchronized (mRunnableOnDraw) {
+//            mRunnableOnDraw.addLast(runnable);
+//        }
+//    }
+//
+//    protected void setFloat(final int location, final float floatValue) {
+//        addRunnableOnDraw(new Runnable() {
+//            @Override public void run() {
+//                GLES20.glUniform1f(location, floatValue);
+//            }
+//        });
+//    }
+//
+//    @Override protected void runningOnDraw() {
+//        while (!mRunnableOnDraw.isEmpty()) {
+//            mRunnableOnDraw.removeFirst().run();
+//        }
+//    }
 }

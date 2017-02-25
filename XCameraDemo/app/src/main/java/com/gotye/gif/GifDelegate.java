@@ -33,7 +33,7 @@ public class GifDelegate {
     //注意Bitmap 的内存泄漏问题
     //换成迭代器的实现更好点
     public Bitmap getNextBitmap() {
-        if (mCurrentBitmapIndex <= mBitmapsCount) {
+        if (mCurrentBitmapIndex < mBitmapsCount) {
             mCurrentBitmapIndex++;
         } else {
             mCurrentBitmapIndex = 0;

@@ -1,4 +1,4 @@
-package com.gotye.bibo.camera.watermark;
+package com.gotye.bibo.camera.waterHolder;
 
 import android.content.Context;
 import android.opengl.Matrix;
@@ -42,19 +42,18 @@ public class GifWaterFrameHolder extends WaterFrameHolder{
         if (mGifDelegate.loadFinish){
             if (textureIds == null) {
                 textureIds = new int[mGifDelegate.getBitmapLength()];
-                for (int i = 0; i < mGifDelegate.getBitmapLength(); i++) {
+                for (int i = 0; i < mGifDelegate.getBitmapLength()-1; i++) {
                     textureIds[i] = mFullFrameRect.createTexture(mGifDelegate.getNextBitmap());
                 }
             }
             //drawFrame
 
             mFullFrameRect.drawFrame(mCurrentTextureId, IDENTITY_MATRIX);
-            LogUtil.error("haha","绘制动态图"+mCurrentTextureId);
             //递增
-            if (mCurrentTextureId<textureIds.length) {
+            if (mCurrentTextureId<textureIds.length-1) {
                 mCurrentTextureId++;
-            }else {
-                mCurrentTextureId = 0;
+            }else {//todo 座优化，这里如果直接从0开始，会有黑色的切换
+                mCurrentTextureId = 10;
             }
         } else {
             LogUtil.error("haha","还没加载完呢");

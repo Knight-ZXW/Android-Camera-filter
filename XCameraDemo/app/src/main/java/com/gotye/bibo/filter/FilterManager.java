@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.PointF;
 
 import com.gotye.bibo.R;
+import com.gotye.bibo.filter.extra.MagicSketchFilter;
 import com.gotye.bibo.util.LogUtil;
 
 
@@ -197,7 +198,8 @@ public class FilterManager {
                     return new CameraFilterChromaKeyBlend(context, 0f, 1f, 0f, R.drawable.bg1, params[0], params[1]);
                 else
                     return new CameraFilterChromaKeyBlend(context, 0f, 1f, 0f, R.drawable.bg1);
-
+            case  Sketch:
+                return new MagicSketchFilter(context);
         }
     }
 
@@ -377,6 +379,8 @@ public class FilterManager {
 
             case AsciiArt2:
                 return new ImageFilterAsciiArt2(context);
+            case Sketch:
+                return new MagicSketchFilter(context);
         }
     }
 
@@ -419,7 +423,8 @@ public class FilterManager {
         AsciiArt,
         AsciiArt2,
         ChromaKey,
-        ChromaKeyBlend;
+        ChromaKeyBlend,
+        Sketch;
 
         private FilterType() {
         }
@@ -457,7 +462,8 @@ public class FilterManager {
                     this.name().equals("BritneyCartoon") ||
                     this.name().contains("Distortion") ||
                     this.name().contains("AsciiArt") ||
-                    this.name().contains("ChromaKey")) {
+                    this.name().contains("ChromaKey") ||
+                    this.name().contains("Sketch")){
                 ret = true;
             }
 

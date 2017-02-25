@@ -34,9 +34,9 @@ import android.widget.Toast;
 import com.gotye.bibo.camera.CameraController;
 import com.gotye.bibo.camera.CameraHelper;
 import com.gotye.bibo.camera.CommonHandlerListener;
-import com.gotye.bibo.camera.watermark.GifWaterFrameHolder;
-import com.gotye.bibo.camera.watermark.NormalWaterFrameHolder;
-import com.gotye.bibo.camera.watermark.WaterFrameHolder;
+import com.gotye.bibo.camera.waterHolder.GifWaterFrameHolder;
+import com.gotye.bibo.camera.waterHolder.NormalWaterFrameHolder;
+import com.gotye.bibo.camera.waterHolder.WaterFrameHolder;
 import com.gotye.bibo.encode.EncoderConfig;
 import com.gotye.bibo.encode.TextureEncoder;
 import com.gotye.bibo.filter.FilterManager;
@@ -89,6 +89,7 @@ public class CameraRecorderView extends SurfaceView
         EasyAudioPlayer.OnPlayerCallback {
 
     private static final String TAG = "CameraRecorderView";
+    private static final String FILTER_TAG ="CameraFilter";
 
     public static final int RECORD_ERROR_INIT_MUXER = -200;
     public static final int RECORD_ERROR_INIT_AUDIO_REC = -201;
@@ -235,14 +236,15 @@ public class CameraRecorderView extends SurfaceView
     private int mAudioTrackBufWrite; //写入的
 
     //-------------water-----------------------------------------------------------/
-    private ArrayList<WaterFrameHolder>  waterFrameHolders = new ArrayList<>();
+    private ArrayList<WaterFrameHolder> waterFrameHolders = new ArrayList<>();
+
     public void setLogo(Bitmap bitmap, int width, int height, int left, int top) {
         NormalWaterFrameHolder mLogoFrameHolder = new NormalWaterFrameHolder(bitmap, getContext(), width, height, left, top);
         waterFrameHolders.add(mLogoFrameHolder);
     }
 
-    public void addBoomWater(InputStream inputStream,int width,int height,int left,int top){
-        waterFrameHolders.add(new GifWaterFrameHolder(inputStream,getContext(),width,height,left,top));
+    public void addBoomWater(InputStream inputStream, int width, int height, int left, int top) {
+        waterFrameHolders.add(new GifWaterFrameHolder(inputStream, getContext(), width, height, left, top));
     }
     //-------------water------------------end-----------------------------------------/
 
@@ -755,54 +757,6 @@ public class CameraRecorderView extends SurfaceView
         return CameraController.getInstance().isTorchOn();
     }
 
-//    public void setWatermark(Bitmap bitmap, int left, int top, int width, int height) {
-//        LogUtil.info(TAG, String.format(Locale.US,
-//                "Java: setWatermark left %d, top %d, %d x %d", left, top, width, height));
-//
-//        if (!mbTextureEncode) {
-//            LogUtil.warn(TAG, "ONLY texture encode mode support watermark");
-//            return;
-//        }
-//
-////        if (mWatermarkText != null) {
-////            mWatermarkText = null;
-////            LogUtil.warn(TAG, "watermark text is DISABLED because of bitmap is set");
-////        }
-//
-//        mWatermarkBitmap = bitmap;
-//        mWatermarkLeft = left;
-//        mWatermarkTop = top;
-//        mWatermarkWidth = width;
-//        mWatermarkHeight = height;
-//    }
-
-    //----------------------- 动态gif 水印图的支持------------------------------------------------/
-
-
-    //------------------------ 动态gif 水印图的支持-----------------------------------------------/
-
-
-//    public void setText(String text, int textsize, int left, int top, int width, int height) {
-//        LogUtil.info(TAG, String.format(Locale.US,
-//                "Java: setText %s, left %d, top %d, %d x %d", text, left, top, width, height));
-//
-//        if (!mbTextureEncode) {
-//            LogUtil.warn(TAG, "ONLY texture encode mode support watermark text");
-//            return;
-//        }
-//
-//        if (mWatermarkBitmap != null) {
-//            mWatermarkBitmap = null;
-//            LogUtil.warn(TAG, "watermark bitmap is DISABLED because of text");
-//        }
-//
-////        mWatermarkText = text;
-////        mWatermarkTextSize = textsize;
-//        mWatermarkLeft = left;
-//        mWatermarkTop = top;
-//        mWatermarkWidth = width;
-//        mWatermarkHeight = height;
-//    }
 
     public void setZoomIn() {
         CameraController.getInstance().setZoomIn();
@@ -1051,14 +1005,14 @@ public class CameraRecorderView extends SurfaceView
             }
         }
 
-        LogUtil.info(TAG, sb.toString());
+        LogUtil.info(FILTER_TAG, sb.toString());
     }
 
     public void setFilter(FilterType type) {
         if (mbTextureEncode) {
             if (mCurrentFilterType != type) {
                 changeFilter(type, null);
-                LogUtil.info(TAG, "setFilter: " + type.canonicalForm());
+                LogUtil.info(FILTER_TAG, "setFilter: " + type.canonicalForm());
             }
         }
     }
@@ -1167,6 +1121,8 @@ public class CameraRecorderView extends SurfaceView
         List<String> CamResList = new ArrayList<String>();
         for (int i = 0; i < ResList.size(); i++) {
             Camera.Size size = ResList.get(i);
+            if (size.width > 1080 || size.height > 1920)
+                continue;
             CamResList.add(String.format("%d x %d", size.width, size.height));
         }
 
@@ -1402,7 +1358,10 @@ public class CameraRecorderView extends SurfaceView
         if (mOrientationListener != null)
             mOrientationListener.enable();
         //判断如果是重新resume的话，需要重新做初始化
-
+        //todo 这是我测试的代码，如果没有用记得删掉
+        if (mDisplaySurface != null && mDisplaySurface.released) {
+            mDisplaySurface.recreate(mEglCore);
+        }
     }
 
     public void onPause() {
@@ -1410,14 +1369,11 @@ public class CameraRecorderView extends SurfaceView
                 CameraController.getInstance().isFrontCamera());
 
         // will stop recording in NORMAL mode
-        if (mbRecording && !mbTextureEncode)
+//        if (mbRecording && !mbTextureEncode)
+//            stopRecording();
+        if (mbRecording) {
             stopRecording();
-
-//        if (mDisplaySurface != null) {
-//            mDisplaySurface.makeCurrent();
-//            mDisplaySurface.release();
-//            mDisplaySurface = null;
-//        }
+        }
 
         if (mOrientationListener != null)
             mOrientationListener.disable();
@@ -1700,7 +1656,7 @@ public class CameraRecorderView extends SurfaceView
             mDisplaySurface.makeCurrent();
             if (mNewFilterType != mCurrentFilterType ||
                     mNewFilterParams != mCurrentFilterParams) {
-
+                LogUtil.debug(FILTER_TAG,"设置新的filter"+mNewFilterType);
                 mFullFrameBlit.changeProgram(
                         FilterManager.getCameraFilter(mNewFilterType, mContext, mNewFilterParams));
                 mCurrentFilterType = mNewFilterType;
@@ -1863,12 +1819,12 @@ public class CameraRecorderView extends SurfaceView
     }
 
     private void drawWaterFrames() {
-        for (WaterFrameHolder waterFrameHolder:waterFrameHolders){
+        for (WaterFrameHolder waterFrameHolder : waterFrameHolders) {
             //todo  这里根据未来线上的实际情况 看是不是可以优化!!
-            float scaleX =  waterFrameHolder.getWidth() / (float) mIncomingWidth * mMvpScaleX;
-            float scaleY =  waterFrameHolder.getHeight() / (float) mIncomingHeight * mMvpScaleY;
+            float scaleX = waterFrameHolder.getWidth() / (float) mIncomingWidth * mMvpScaleX;
+            float scaleY = waterFrameHolder.getHeight() / (float) mIncomingHeight * mMvpScaleY;
             float translateX = -(mMvpScaleX - scaleX) +
-                     waterFrameHolder.getLeft() * 2f * mMvpScaleX / (float) mIncomingWidth;
+                    waterFrameHolder.getLeft() * 2f * mMvpScaleX / (float) mIncomingWidth;
             float translateY = mMvpScaleY - scaleY -
                     waterFrameHolder.getTop() * 2f * mMvpScaleY / (float) mIncomingHeight;
             waterFrameHolder.drawFrame(scaleX, scaleY, translateX, translateY);
@@ -2091,8 +2047,7 @@ public class CameraRecorderView extends SurfaceView
                         // try to set camera parameter without fps range
                         LogUtil.warn(TAG, "try to set camera parameter without fps range");
                         cameraController.openCamera(getContext().getApplicationContext(), mOrientation);
-                        if (!cameraController.configureCameraParameters(previewSize, false))
-                            throw new RuntimeException("failed to set camera parameter");
+                        cameraController.configureCameraParameters(previewSize, false);
                     }
                     if (!mbTextureEncode)
                         mMainHandler.sendEmptyMessage(MainHandler.MSG_UPDATE_LAYOUT);
